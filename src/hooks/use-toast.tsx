@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import type {
   ToastActionElement,
@@ -144,15 +145,20 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-// Provider component
+let dispatch: React.Dispatch<Action> = () => {};
+
+// Provider function without JSX
 export function ToastProvider({
   children,
 }: {
   children: React.ReactNode;
-}) {
-  const [state, dispatch] = React.useReducer(reducer, {
+}): React.ReactElement {
+  const [state, dispatchState] = React.useReducer(reducer, {
     toasts: [],
   });
+  
+  // Update the dispatch reference
+  dispatch = dispatchState;
 
   React.useEffect(() => {
     return () => {
@@ -195,16 +201,18 @@ export function ToastProvider({
     dispatch({ type: "DISMISS_TOAST", toastId });
   }, []);
 
-  return (
-    <ToastContext.Provider
-      value={{
-        toasts: state.toasts,
-        toast,
-        dismiss,
-      }}
-    >
-      {children}
-    </ToastContext.Provider>
+  // Create a value object
+  const contextValue = {
+    toasts: state.toasts,
+    toast,
+    dismiss,
+  };
+
+  // Return without JSX
+  return React.createElement(
+    ToastContext.Provider,
+    { value: contextValue },
+    children
   );
 }
 
