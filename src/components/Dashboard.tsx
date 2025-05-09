@@ -6,6 +6,7 @@ import SafetyMap from './SafetyMap';
 import LineStatus from './LineStatus';
 import PredictionChart from './PredictionChart';
 import TimeAnalysis from './TimeAnalysis';
+import ChatbotPopup from './ChatbotPopup';
 
 const Dashboard = () => {
   return (
@@ -38,6 +39,9 @@ const Dashboard = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Add the ChatbotPopup component */}
+      <ChatbotPopup />
     </div>
   );
 };
