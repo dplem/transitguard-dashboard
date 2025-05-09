@@ -6,6 +6,7 @@ import SafetyMap from './SafetyMap';
 import LineStatus from './LineStatus';
 import PredictionChart from './PredictionChart';
 import TimeAnalysis from './TimeAnalysis';
+import AIAssistant from './AIAssistant';
 
 const Dashboard = () => {
   return (
@@ -38,6 +39,8 @@ const Dashboard = () => {
           </div>
         </div>
       </footer>
+
+      <AIAssistant />
     </div>
   );
 };

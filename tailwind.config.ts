@@ -1,12 +1,19 @@
 
 import { type Config } from "tailwindcss";
 import { fontFamily } from "tailwindcss/defaultTheme";
-import animatePlugin from "tailwindcss-animate";
+import animate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -14,12 +21,6 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        transit: {
-          red: "#EA384C",
-          amber: "#FFAA00",
-          green: "#00C48C",
-          blue: "#0EA5E9",
-        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -48,9 +49,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-      },
-      animation: {
-        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        // Custom colors for TransitGuard
+        "transit-blue": "#0073e6",
+        "transit-red": "#e53935",
+        "transit-green": "#4caf50",
+        "transit-yellow": "#fdd835",
+        "transit-orange": "#ff9800",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -70,7 +74,11 @@ export default {
           to: { height: "0" },
         },
       },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
     },
   },
-  plugins: [animatePlugin],
+  plugins: [animate],
 } satisfies Config;
