@@ -290,7 +290,6 @@ const SafetyMetrics = () => {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-sm font-medium">Total Traffic Incidents</CardTitle>
-            <CardDescription>July 13, 2024</CardDescription>
           </div>
           <Car className="h-5 w-5 text-transit-green" />
         </CardHeader>
