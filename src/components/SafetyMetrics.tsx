@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Clock, Info, Car, AlertTriangle } from 'lucide-react';
+import { Shield, Info, Car, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 interface SafetyIndexData {
   Date: string;
@@ -50,6 +50,7 @@ const SafetyMetrics = () => {
           } catch (error) {
             console.error('Error fetching data:', error);
             setHasError(true);
+            toast.error('Failed to load safety data. Using fallback data.');
             // Set mock data for development
             setMockData();
           } finally {
@@ -88,196 +89,215 @@ const SafetyMetrics = () => {
     };
 
     const fetchSafetyIndexData = async () => {
-      const response = await fetch('/data/safety_index.csv');
+      try {
+        // Explicitly request from public/data path
+        const response = await fetch('/data/safety_index.csv');
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch safety index data: ${response.status}`);
-      }
-      
-      const csvText = await response.text();
-      
-      // Parse CSV
-      const rows = csvText.split('\n');
-      const headers = rows[0].split(',');
-      
-      // Find the right index for each column
-      const dateIndex = headers.indexOf('Date');
-      const safetyIndexIndex = headers.indexOf('safety_index');
-      
-      // Find the entry for our target date
-      const parsedData = [];
-      let currentIndex = null;
-      
-      for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].split(',');
-        const rowDate = cells[dateIndex];
-        const safetyValue = parseFloat(cells[safetyIndexIndex]);
-        
-        // Skip any invalid data rows
-        if (isNaN(safetyValue) || !rowDate) continue;
-        
-        parsedData.push({
-          date: rowDate,
-          value: safetyValue
-        });
-        
-        if (rowDate === targetDate) {
-          currentIndex = safetyValue;
-          setSafetyIndex(safetyValue);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch safety index data: ${response.status}`);
         }
-      }
-      
-      // Calculate the 7-day average before the target date
-      if (currentIndex !== null) {
-        // Find the index of our target date in the parsed data
-        const targetIndex = parsedData.findIndex(item => item.date === targetDate);
         
-        if (targetIndex >= 0) {
-          // Calculate average of 7 days before (if available)
-          let sum = 0;
-          let count = 0;
+        const csvText = await response.text();
+        console.log('Safety Index CSV data loaded:', csvText.length > 0);
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
+        
+        // Find the right index for each column
+        const dateIndex = headers.indexOf('Date');
+        const safetyIndexIndex = headers.indexOf('safety_index');
+        
+        // Find the entry for our target date
+        const parsedData = [];
+        let currentIndex = null;
+        
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i].split(',');
+          const rowDate = cells[dateIndex];
+          const safetyValue = parseFloat(cells[safetyIndexIndex]);
           
-          // Get up to 7 days before the target date
-          for (let i = 1; i <= 7; i++) {
-            if (targetIndex - i >= 0) {
-              sum += parsedData[targetIndex - i].value;
-              count++;
+          // Skip any invalid data rows
+          if (isNaN(safetyValue) || !rowDate) continue;
+          
+          parsedData.push({
+            date: rowDate,
+            value: safetyValue
+          });
+          
+          if (rowDate === targetDate) {
+            currentIndex = safetyValue;
+            setSafetyIndex(safetyValue);
+          }
+        }
+        
+        // Calculate the 7-day average before the target date
+        if (currentIndex !== null) {
+          // Find the index of our target date in the parsed data
+          const targetIndex = parsedData.findIndex(item => item.date === targetDate);
+          
+          if (targetIndex >= 0) {
+            // Calculate average of 7 days before (if available)
+            let sum = 0;
+            let count = 0;
+            
+            // Get up to 7 days before the target date
+            for (let i = 1; i <= 7; i++) {
+              if (targetIndex - i >= 0) {
+                sum += parsedData[targetIndex - i].value;
+                count++;
+              }
+            }
+            
+            if (count > 0) {
+              const weekAverage = sum / count;
+              const change = ((currentIndex - weekAverage) / weekAverage) * 100;
+              setPercentChange(Number(change.toFixed(1)));
             }
           }
-          
-          if (count > 0) {
-            const weekAverage = sum / count;
-            const change = ((currentIndex - weekAverage) / weekAverage) * 100;
-            setPercentChange(Number(change.toFixed(1)));
-          }
         }
+      } catch (error) {
+        console.error('Error in fetchSafetyIndexData:', error);
+        throw error;
       }
     };
 
     const fetchCrimeData = async () => {
-      const response = await fetch('/data/july_2024_crime_summary.csv');
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch crime data: ${response.status}`);
-      }
-      
-      const csvText = await response.text();
-      
-      // Parse CSV
-      const rows = csvText.split('\n');
-      const headers = rows[0].split(',');
-      
-      // Find the right index for each column
-      const dateIndex = headers.indexOf('date');
-      const typeIndex = headers.indexOf('primary_type');
-      const countIndex = headers.indexOf('count');
-      
-      const parsedData: CrimeData[] = [];
-      let totalCount = 0;
-      const crimesOnTargetDate: CrimeData[] = [];
-      const previousDayCrimes: CrimeData[] = [];
-      
-      // Convert target date to format in CSV (YYYY-MM-DD)
-      const formattedTargetDate = targetDate;
-      
-      // Calculate previous date
-      const targetDateObj = new Date(formattedTargetDate);
-      const previousDateObj = new Date(targetDateObj);
-      previousDateObj.setDate(previousDateObj.getDate() - 1);
-      const previousDate = previousDateObj.toISOString().split('T')[0];
-      
-      for (let i = 1; i < rows.length; i++) {
-        if (!rows[i].trim()) continue; // Skip empty rows
+      try {
+        const response = await fetch('/data/july_2024_crime_summary.csv');
         
-        const cells = rows[i].split(',');
-        const rowDate = cells[dateIndex];
-        const crimeType = cells[typeIndex];
-        const crimeCount = parseInt(cells[countIndex], 10);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch crime data: ${response.status}`);
+        }
         
-        // Skip any invalid data rows
-        if (isNaN(crimeCount) || !rowDate || !crimeType) continue;
+        const csvText = await response.text();
+        console.log('Crime CSV data loaded:', csvText.length > 0);
         
-        parsedData.push({
-          date: rowDate,
-          primary_type: crimeType,
-          count: crimeCount
-        });
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
         
-        // Collect crimes on target date
-        if (rowDate === formattedTargetDate) {
-          crimesOnTargetDate.push({
+        // Find the right index for each column
+        const dateIndex = headers.indexOf('date');
+        const typeIndex = headers.indexOf('primary_type');
+        const countIndex = headers.indexOf('count');
+        
+        const parsedData: CrimeData[] = [];
+        let totalCount = 0;
+        const crimesOnTargetDate: CrimeData[] = [];
+        const previousDayCrimes: CrimeData[] = [];
+        
+        // Convert target date to format in CSV (YYYY-MM-DD)
+        const formattedTargetDate = targetDate;
+        
+        // Calculate previous date
+        const targetDateObj = new Date(formattedTargetDate);
+        const previousDateObj = new Date(targetDateObj);
+        previousDateObj.setDate(previousDateObj.getDate() - 1);
+        const previousDate = previousDateObj.toISOString().split('T')[0];
+        
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i].trim()) continue; // Skip empty rows
+          
+          const cells = rows[i].split(',');
+          const rowDate = cells[dateIndex];
+          const crimeType = cells[typeIndex];
+          const crimeCount = parseInt(cells[countIndex], 10);
+          
+          // Skip any invalid data rows
+          if (isNaN(crimeCount) || !rowDate || !crimeType) continue;
+          
+          parsedData.push({
             date: rowDate,
             primary_type: crimeType,
             count: crimeCount
           });
-          totalCount += crimeCount;
+          
+          // Collect crimes on target date
+          if (rowDate === formattedTargetDate) {
+            crimesOnTargetDate.push({
+              date: rowDate,
+              primary_type: crimeType,
+              count: crimeCount
+            });
+            totalCount += crimeCount;
+          }
+          
+          // Collect crimes on previous date
+          if (rowDate === previousDate) {
+            previousDayCrimes.push({
+              date: rowDate,
+              primary_type: crimeType,
+              count: crimeCount
+            });
+          }
         }
         
-        // Collect crimes on previous date
-        if (rowDate === previousDate) {
-          previousDayCrimes.push({
-            date: rowDate,
-            primary_type: crimeType,
-            count: crimeCount
-          });
+        // Calculate total for previous day
+        const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
+        
+        // Calculate percentage change if both days have data
+        if (previousDayTotal > 0) {
+          const change = ((totalCount - previousDayTotal) / previousDayTotal) * 100;
+          setPreviousDayChange(Number(change.toFixed(0)));
         }
+        
+        // Sort crimes by count and get top 3
+        const sortedCrimes = [...crimesOnTargetDate].sort((a, b) => b.count - a.count);
+        const topCrimes = sortedCrimes.slice(0, 2); // Get top 2
+        
+        // Calculate "Other" category
+        const othersCount = totalCount - topCrimes.reduce((sum, crime) => sum + crime.count, 0);
+        
+        const breakdown = [
+          ...topCrimes.map(crime => ({
+            type: crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase(),
+            count: crime.count
+          })),
+          { type: 'Other', count: othersCount }
+        ];
+        
+        setCrimeData(parsedData);
+        setTotalCrimes(totalCount);
+        setCrimeBreakdown(breakdown);
+      } catch (error) {
+        console.error('Error in fetchCrimeData:', error);
+        throw error;
       }
-      
-      // Calculate total for previous day
-      const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
-      
-      // Calculate percentage change if both days have data
-      if (previousDayTotal > 0) {
-        const change = ((totalCount - previousDayTotal) / previousDayTotal) * 100;
-        setPreviousDayChange(Number(change.toFixed(0)));
-      }
-      
-      // Sort crimes by count and get top 3
-      const sortedCrimes = [...crimesOnTargetDate].sort((a, b) => b.count - a.count);
-      const topCrimes = sortedCrimes.slice(0, 2); // Get top 2
-      
-      // Calculate "Other" category
-      const othersCount = totalCount - topCrimes.reduce((sum, crime) => sum + crime.count, 0);
-      
-      const breakdown = [
-        ...topCrimes.map(crime => ({
-          type: crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase(),
-          count: crime.count
-        })),
-        { type: 'Other', count: othersCount }
-      ];
-      
-      setCrimeData(parsedData);
-      setTotalCrimes(totalCount);
-      setCrimeBreakdown(breakdown);
     };
 
     const fetchTrafficData = async () => {
-      const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch traffic data: ${response.status}`);
-      }
-      
-      const csvText = await response.text();
-      
-      // Parse CSV
-      const rows = csvText.split('\n');
-      const headers = rows[0].split(',');
-      
-      // Find the entry for July 13, 2024
-      for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].split(',');
-        if (cells[0] === targetDate) {
-          setTrafficData({
-            DATE: cells[0],
-            TOTAL_CRASHES: parseInt(cells[1], 10),
-            TOTAL_FATALITIES: parseFloat(cells[2]),
-            TOTAL_INCAPACITATING_INJURIES: parseFloat(cells[3]),
-            TOTAL_NON_INCAPACITATING_INJURIES: parseFloat(cells[4])
-          });
-          break;
+      try {
+        const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch traffic data: ${response.status}`);
         }
+        
+        const csvText = await response.text();
+        console.log('Traffic CSV data loaded:', csvText.length > 0);
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
+        
+        // Find the entry for July 13, 2024
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i].split(',');
+          if (cells[0] === targetDate) {
+            setTrafficData({
+              DATE: cells[0],
+              TOTAL_CRASHES: parseInt(cells[1], 10),
+              TOTAL_FATALITIES: parseFloat(cells[2]),
+              TOTAL_INCAPACITATING_INJURIES: parseFloat(cells[3]),
+              TOTAL_NON_INCAPACITATING_INJURIES: parseFloat(cells[4])
+            });
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchTrafficData:', error);
+        throw error;
       }
     };
 
