@@ -79,7 +79,7 @@ const LineStatus = () => {
   }, []);
 
   // Map risk_flag values to appropriate status colors
-  const getStatusColor = (risk: string) => {
+  const getRiskBadgeClass = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
         return 'bg-red-600 text-white';
@@ -97,7 +97,7 @@ const LineStatus = () => {
     return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Low';
   };
 
-  const getRiskColor = (risk: string) => {
+  const getRiskLegendColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
         return 'bg-red-600';
@@ -139,9 +139,9 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(line.risk)}`}>
+                  <Badge className={getRiskBadgeClass(line.risk)}>
                     {mapRiskToStatus(line.risk)}
-                  </div>
+                  </Badge>
                 </div>
               </div>
             ))}
@@ -151,7 +151,7 @@ const LineStatus = () => {
           {riskCategories.length > 0 ? (
             riskCategories.map((risk) => (
               <div key={risk} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full ${getRiskColor(risk)} mr-1`}></div>
+                <div className={`w-3 h-3 rounded-full ${getRiskLegendColor(risk)} mr-1`}></div>
                 <span>{mapRiskToStatus(risk)}</span>
               </div>
             ))
