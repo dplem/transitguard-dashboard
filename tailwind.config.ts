@@ -49,12 +49,16 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom colors for TransitGuard
-        "transit-blue": "#0073e6",
-        "transit-red": "#e53935",
+        // Custom colors for TransitGuard with CTA color scheme
+        "transit-blue": "#0078AE", // CTA Blue
+        "transit-red": "#DC0A28", // CTA Red
         "transit-green": "#4caf50",
         "transit-yellow": "#fdd835",
         "transit-orange": "#ff9800",
+        "transit-amber": "#FFC72C", // CTA Yellow/Amber
+        "transit-purple": "#522398", // CTA Purple
+        "transit-pink": "#E27EA6", // CTA Pink
+        "transit-brown": "#62361B", // CTA Brown
       },
       borderRadius: {
         lg: "var(--radius)",
