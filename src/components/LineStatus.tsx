@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,22 +88,13 @@ const LineStatus = () => {
       case 'low':
         return 'bg-transit-green text-white';
       default:
-        return 'bg-transit-green text-white';
+        return 'bg-gray-200 text-gray-700';
     }
   };
 
-  // Map risk_flag values to status text
+  // Map risk_flag values to status text - keep the actual risk level from CSV
   const mapRiskToStatus = (risk: string) => {
-    switch (risk?.toLowerCase()) {
-      case 'high':
-        return 'High';
-      case 'medium':
-        return 'Medium';
-      case 'low':
-        return 'Low';
-      default:
-        return 'Normal';
-    }
+    return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Unknown';
   };
 
   const getRiskColor = (risk: string) => {
@@ -116,7 +106,7 @@ const LineStatus = () => {
       case 'low':
         return 'bg-transit-green';
       default:
-        return 'bg-transit-green';
+        return 'bg-gray-200';
     }
   };
 
