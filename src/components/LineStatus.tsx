@@ -78,17 +78,29 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
-  // Function to get the appropriate CSS class for risk badges
-  const getRiskBadgeClass = (risk: string) => {
+  // Get the correct badge variant based on risk level
+  const getRiskBadgeVariant = (risk: string): "default" | "destructive" | "outline" | "secondary" => {
     switch (risk?.toLowerCase()) {
       case 'high':
-        return 'bg-red-600 hover:bg-red-600 text-white';
+        return 'destructive';
       case 'medium':
-        return 'bg-orange-500 hover:bg-orange-500 text-white';
+        return 'secondary';
       case 'low':
-        return 'bg-green-500 hover:bg-green-500 text-white';
       default:
-        return 'bg-green-500 hover:bg-green-500 text-white'; // Default to green for missing values
+        return 'default';
+    }
+  };
+
+  // Get custom styling for badges based on risk
+  const getRiskBadgeStyle = (risk: string): string => {
+    switch (risk?.toLowerCase()) {
+      case 'high':
+        return 'bg-red-600 hover:bg-red-600 text-white border-transparent';
+      case 'medium':
+        return 'bg-orange-500 hover:bg-orange-500 text-white border-transparent';
+      case 'low':
+      default:
+        return 'bg-green-500 hover:bg-green-500 text-white border-transparent';
     }
   };
 
@@ -105,9 +117,8 @@ const LineStatus = () => {
       case 'medium':
         return 'bg-orange-500';
       case 'low':
-        return 'bg-green-500';
       default:
-        return 'bg-green-500'; // Default to green for missing values
+        return 'bg-green-500';
     }
   };
 
@@ -140,9 +151,9 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeClass(line.risk)}`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeStyle(line.risk)}`}>
                     {mapRiskToStatus(line.risk)}
-                  </div>
+                  </span>
                 </div>
               </div>
             ))}
