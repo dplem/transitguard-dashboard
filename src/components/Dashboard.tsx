@@ -5,7 +5,6 @@ import SafetyMetrics from './SafetyMetrics';
 import SafetyMap from './SafetyMap';
 import LineStatus from './LineStatus';
 import PredictionChart from './PredictionChart';
-import TimeAnalysis from './TimeAnalysis';
 import ChatbotPopup from './ChatbotPopup';
 
 const Dashboard = () => {
@@ -29,7 +28,7 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <PredictionChart />
-            <TimeAnalysis />
+            {/* TimeAnalysis component has been removed from here */}
           </div>
         </div>
       </main>
