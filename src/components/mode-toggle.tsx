@@ -12,7 +12,24 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function ModeToggle() {
-  const { setTheme } = useTheme()
+  // Track if component is mounted to avoid SSR issues
+  const [mounted, setMounted] = React.useState(false)
+  const { setTheme, theme } = useTheme()
+
+  // After mounting, we have access to the theme
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // If not mounted yet, render a placeholder with same dimensions to avoid layout shift
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon">
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    )
+  }
 
   return (
     <DropdownMenu>
@@ -23,7 +40,7 @@ export function ModeToggle() {
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="bg-popover">
         <DropdownMenuItem onClick={() => setTheme("light")}>
           Light
         </DropdownMenuItem>
