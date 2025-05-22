@@ -1,29 +1,94 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
 
-const LineStatus = () => {
-  const trainLines = [
-    { name: 'Red Line', status: 'caution', incidents: 5, color: '#DC0A28' }, // CTA Red
-    { name: 'Blue Line', status: 'normal', incidents: 2, color: '#0078AE' }, // CTA Blue
-    { name: 'Brown Line', status: 'normal', incidents: 1, color: '#62361B' }, // CTA Brown
-    { name: 'Green Line', status: 'alert', incidents: 7, color: '#009B3A' }, // CTA Green
-    { name: 'Orange Line', status: 'normal', incidents: 0, color: '#F9461C' }, // CTA Orange
-    { name: 'Purple Line', status: 'normal', incidents: 1, color: '#522398' }, // CTA Purple
-    { name: 'Pink Line', status: 'caution', incidents: 4, color: '#E27EA6' }, // CTA Pink
-    { name: 'Yellow Line', status: 'normal', incidents: 0, color: '#FFC72C' }, // CTA Yellow
-  ];
+interface LineData {
+  name: string;
+  incidents: number;
+  risk: string;
+  color: string;
+}
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'alert':
+const LineStatus = () => {
+  const [trainLines, setTrainLines] = useState<LineData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/data/line_counts.csv');
+        const csvText = await response.text();
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
+        
+        const lineColors = {
+          'Red Line': '#DC0A28', // CTA Red
+          'Blue Line': '#0078AE', // CTA Blue
+          'Brown Line': '#62361B', // CTA Brown
+          'Green Line': '#009B3A', // CTA Green
+          'Orange Line': '#F9461C', // CTA Orange
+          'Purple': '#522398', // CTA Purple
+          'Purple Line Express': '#522398', // CTA Purple
+          'Yellow Line': '#FFC72C', // CTA Yellow
+          'Pink Line': '#E27EA6', // CTA Pink
+        };
+
+        const parsedData: LineData[] = [];
+        
+        // Skip header row
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i].trim()) continue; // Skip empty rows
+          
+          const cells = rows[i].split(',');
+          const lineName = cells[0];
+          const incidents = parseInt(cells[1]);
+          const risk = cells[2];
+          
+          // Skip if essential data is missing
+          if (!lineName || isNaN(incidents)) continue;
+          
+          parsedData.push({
+            name: lineName,
+            incidents,
+            risk,
+            color: lineColors[lineName] || '#888888' // Default gray if color not found
+          });
+        }
+        
+        setTrainLines(parsedData);
+      } catch (error) {
+        console.error('Error fetching line counts data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const getStatusColor = (risk: string) => {
+    switch (risk?.toLowerCase()) {
+      case 'high':
         return 'bg-transit-red text-white';
-      case 'caution':
+      case 'medium':
         return 'bg-transit-amber text-black';
       default:
         return 'bg-transit-green text-white';
+    }
+  };
+
+  const mapRiskToStatus = (risk: string) => {
+    switch (risk?.toLowerCase()) {
+      case 'high':
+        return 'Alert';
+      case 'medium':
+        return 'Caution';
+      default:
+        return 'Normal';
     }
   };
 
@@ -34,31 +99,36 @@ const LineStatus = () => {
         <CardDescription>Current safety status by transit line</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="space-y-3">
-          {trainLines.map((line) => (
-            <div key={line.name} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
-              <div className="flex items-center">
-                <div 
-                  className="w-3 h-8 rounded-sm mr-3" 
-                  style={{ backgroundColor: line.color }}
-                ></div>
-                <span className="font-medium">{line.name}</span>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-transit-blue"></div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {trainLines.map((line) => (
+              <div key={line.name} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+                <div className="flex items-center">
+                  <div 
+                    className="w-3 h-8 rounded-sm mr-3" 
+                    style={{ backgroundColor: line.color }}
+                  ></div>
+                  <span className="font-medium">{line.name}</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  {line.incidents > 0 && (
+                    <div className="text-xs text-gray-500 flex items-center">
+                      <Info className="h-3 w-3 mr-1" />
+                      <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  <Badge className={`${getStatusColor(line.risk)}`}>
+                    {mapRiskToStatus(line.risk)}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                {line.incidents > 0 && (
-                  <div className="text-xs text-gray-500 flex items-center">
-                    <Info className="h-3 w-3 mr-1" />
-                    <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
-                  </div>
-                )}
-                <Badge className={`${getStatusColor(line.status)}`}>
-                  {line.status === 'normal' ? 'Normal' : 
-                   line.status === 'caution' ? 'Caution' : 'Alert'}
-                </Badge>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <div className="mt-4 pt-3 border-t flex justify-between text-xs text-gray-500">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-transit-green mr-1"></div>
