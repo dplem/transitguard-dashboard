@@ -1,141 +1,52 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-
-// Sample incident data - in a real app this would come from an API
-const sampleIncidents = [
-  { id: 1, lat: 41.878, lng: -87.629, severity: 'high', type: 'Theft' },
-  { id: 2, lat: 41.881, lng: -87.623, severity: 'medium', type: 'Battery' },
-  { id: 3, lat: 41.885, lng: -87.632, severity: 'high', type: 'Robbery' },
-  { id: 4, lat: 41.882, lng: -87.617, severity: 'low', type: 'Vandalism' },
-  { id: 5, lat: 41.875, lng: -87.624, severity: 'medium', type: 'Assault' },
-  { id: 6, lat: 41.888, lng: -87.636, severity: 'high', type: 'Theft' },
-  { id: 7, lat: 41.879, lng: -87.642, severity: 'low', type: 'Trespassing' },
-];
-
-// Mapbox public token - in a real app, this should come from environment variables
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZXVzZXIiLCJhIjoiY2w3OGR4NnRkMDV0cDN3bWkxaWdqZDR5YiJ9.ktaI1uYVF9z4LNMnx4BN9g';
 
 const SafetyMap = () => {
   const [timeRange, setTimeRange] = useState('24h');
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Set up the map when the component mounts
+  const [mapError, setMapError] = useState(false);
+  
+  // Load the HTML file in an iframe
   useEffect(() => {
-    if (!mapContainer.current) return;
-
-    // Add fallback if map fails to load
-    const initTimeout = setTimeout(() => {
-      if (!mapLoaded) {
-        console.log('Map failed to load within timeout period');
-        setMapError(true);
+    // Add a timeout to simulate loading and catch potential errors
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
         setIsLoading(false);
       }
     }, 3000);
 
-    try {
-      mapboxgl.accessToken = MAPBOX_TOKEN;
-      
-      const newMap = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [-87.623177, 41.881832], // Chicago coordinates
-        zoom: 11
-      });
+    // Check if the iframe loaded successfully
+    const handleIframeLoad = () => {
+      setIsLoading(false);
+      clearTimeout(loadingTimeout);
+    };
 
-      newMap.on('load', () => {
-        setMapLoaded(true);
-        setIsLoading(false);
-        map.current = newMap;
-        clearTimeout(initTimeout);
-      });
-
-      newMap.on('error', (e) => {
-        console.error('Mapbox error:', e);
-        setMapError(true);
-        setIsLoading(false);
-        clearTimeout(initTimeout);
-      });
-
-      return () => {
-        clearTimeout(initTimeout);
-        newMap.remove();
-      };
-    } catch (error) {
-      console.error('Error initializing map:', error);
+    // Check if the iframe failed to load
+    const handleIframeError = () => {
       setMapError(true);
       setIsLoading(false);
-      clearTimeout(initTimeout);
-      return () => {
-        clearTimeout(initTimeout);
-      };
+      clearTimeout(loadingTimeout);
+      console.error("Error loading map HTML file");
+    };
+
+    const iframe = document.getElementById('crime-map-iframe') as HTMLIFrameElement;
+    if (iframe) {
+      iframe.onload = handleIframeLoad;
+      iframe.onerror = handleIframeError;
     }
-  }, []);
 
-  // Add incident markers once the map is loaded
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-    
-    // Remove existing markers if any
-    const existingMarkers = document.querySelectorAll('.incident-marker');
-    existingMarkers.forEach(marker => marker.remove());
-
-    // Add incident markers
-    sampleIncidents.forEach(incident => {
-      // Create a marker element
-      const markerEl = document.createElement('div');
-      markerEl.className = 'incident-marker';
-      
-      let size;
-      let color;
-
-      switch (incident.severity) {
-        case 'high':
-          size = 'w-5 h-5';
-          color = 'bg-transit-red';
-          break;
-        case 'medium':
-          size = 'w-4 h-4';
-          color = 'bg-transit-amber';
-          break;
-        case 'low':
-          size = 'w-3 h-3';
-          color = 'bg-transit-green';
-          break;
+    return () => {
+      clearTimeout(loadingTimeout);
+      if (iframe) {
+        iframe.onload = null;
+        iframe.onerror = null;
       }
-
-      // Create the pulse effect with tailwind classes
-      markerEl.innerHTML = `
-        <div class="relative">
-          <div class="${size} ${color} rounded-full animate-pulse"></div>
-          <div class="absolute -inset-2 ${color} bg-opacity-25 rounded-full"></div>
-        </div>
-      `;
-      
-      // Create a popup for the marker
-      const popup = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(`
-          <strong>${incident.type}</strong><br>
-          Severity: ${incident.severity}
-        `);
-        
-      // Add the marker to the map
-      new mapboxgl.Marker(markerEl)
-        .setLngLat([incident.lng, incident.lat])
-        .setPopup(popup)
-        .addTo(map.current);
-    });
-    
-  }, [mapLoaded, timeRange]);
+    };
+  }, [timeRange]);
 
   // Map fallback content
   const renderMapFallback = () => (
@@ -143,7 +54,7 @@ const SafetyMap = () => {
       <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
       <p className="text-lg font-medium mb-2">Map unavailable</p>
       <p className="text-sm text-center max-w-xs">
-        Unable to load the map. This may be due to network issues or an invalid API key.
+        Unable to load the map. This may be due to file access issues or browser restrictions.
       </p>
       <div className="mt-8 p-4 bg-gray-100 rounded-lg">
         <p className="text-sm font-medium mb-2">Incident summary:</p>
@@ -187,10 +98,13 @@ const SafetyMap = () => {
           ) : mapError ? (
             renderMapFallback()
           ) : (
-            <>
-              {/* Mapbox container */}
-              <div ref={mapContainer} className="absolute inset-0" />
-            </>
+            <iframe
+              id="crime-map-iframe"
+              src="/data/july_crime_map.html"
+              className="absolute inset-0 w-full h-full border-0"
+              title="Chicago Crime Map"
+              sandbox="allow-same-origin allow-scripts"
+            ></iframe>
           )}
           
           {/* Legend overlay - always show this */}
