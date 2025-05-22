@@ -79,7 +79,7 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
-  // Updated to use the actual risk value from CSV directly
+  // Map risk_flag values to appropriate status colors
   const getStatusColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
@@ -93,15 +93,15 @@ const LineStatus = () => {
     }
   };
 
-  // Updated to display the actual risk value from CSV
+  // Map risk_flag values to status text
   const mapRiskToStatus = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
-        return 'Alert';
+        return 'High';
       case 'medium':
-        return 'Caution';
+        return 'Medium';
       case 'low':
-        return 'Normal';
+        return 'Low';
       default:
         return 'Normal';
     }
@@ -169,15 +169,15 @@ const LineStatus = () => {
             <>
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-transit-green mr-1"></div>
-                <span>Normal</span>
+                <span>Low</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-transit-amber mr-1"></div>
-                <span>Caution</span>
+                <span>Medium</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-transit-red mr-1"></div>
-                <span>Alert</span>
+                <span>High</span>
               </div>
             </>
           )}
