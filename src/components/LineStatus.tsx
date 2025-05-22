@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface LineData {
   name: string;
@@ -86,11 +88,11 @@ const LineStatus = () => {
       case 'low':
         return 'bg-green-500 text-white';
       default:
-        return 'bg-green-500 text-white'; // Default to green instead of gray
+        return 'bg-green-500 text-white'; // Default to green
     }
   };
 
-  // Map risk_flag values to status text - keep the actual risk level from CSV
+  // Map risk_flag values to status text
   const mapRiskToStatus = (risk: string) => {
     return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Low';
   };
@@ -104,7 +106,7 @@ const LineStatus = () => {
       case 'low':
         return 'bg-green-500';
       default:
-        return 'bg-green-500'; // Default to green instead of gray
+        return 'bg-green-500'; // Default to green
     }
   };
 
