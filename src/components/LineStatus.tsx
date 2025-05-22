@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -82,11 +83,11 @@ const LineStatus = () => {
   const getStatusColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
-        return 'bg-transit-red text-white';
+        return 'bg-red-600 text-white';
       case 'medium':
-        return 'bg-transit-amber text-black';
+        return 'bg-orange-500 text-white';
       case 'low':
-        return 'bg-transit-green text-white';
+        return 'bg-green-500 text-white';
       default:
         return 'bg-gray-200 text-gray-700';
     }
@@ -100,11 +101,11 @@ const LineStatus = () => {
   const getRiskColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
-        return 'bg-transit-red';
+        return 'bg-red-600';
       case 'medium':
-        return 'bg-transit-amber';
+        return 'bg-orange-500';
       case 'low':
-        return 'bg-transit-green';
+        return 'bg-green-500';
       default:
         return 'bg-gray-200';
     }
@@ -158,15 +159,15 @@ const LineStatus = () => {
           ) : (
             <>
               <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-transit-green mr-1"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
                 <span>Low</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-transit-amber mr-1"></div>
+                <div className="w-3 h-3 rounded-full bg-orange-500 mr-1"></div>
                 <span>Medium</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-transit-red mr-1"></div>
+                <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
                 <span>High</span>
               </div>
             </>
