@@ -81,11 +81,11 @@ const LineStatus = () => {
   // Map risk_flag values to appropriate status colors
   const getRiskBadgeClass = (risk: string) => {
     switch (risk?.toLowerCase()) {
-      case 'high':
+      case 'High':
         return 'bg-red-600 text-white';
-      case 'medium':
+      case 'Medium':
         return 'bg-orange-500 text-white';
-      case 'low':
+      case 'Low':
         return 'bg-green-500 text-white';
       default:
         return 'bg-green-500 text-white'; // Default to green
