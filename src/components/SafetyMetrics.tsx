@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Info, Car, AlertTriangle } from 'lucide-react';
@@ -40,21 +39,27 @@ const SafetyMetrics = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
-        setHasError(false);
-        
-        await Promise.all([
-          fetchSafetyIndexData(),
-          fetchCrimeData(),
-          fetchTrafficData()
-        ]);
-        
-        setIsLoading(false);
+        // Add a delay to ensure files are loaded
+        setTimeout(async () => {
+          try {
+            await Promise.all([
+              fetchSafetyIndexData(),
+              fetchCrimeData(),
+              fetchTrafficData()
+            ]);
+          } catch (error) {
+            console.error('Error fetching data:', error);
+            setHasError(true);
+            toast.error('Failed to load safety data. Using fallback data.');
+            // Set mock data for development
+            setMockData();
+          } finally {
+            setIsLoading(false);
+          }
+        }, 1000); // 1 second delay
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in timeout:', error);
         setHasError(true);
-        toast.error('Failed to load safety data. Using fallback data.');
-        setMockData();
         setIsLoading(false);
       }
     };
@@ -85,19 +90,15 @@ const SafetyMetrics = () => {
 
     const fetchSafetyIndexData = async () => {
       try {
-        // Make sure we use the correct path
-        const response = await fetch('data/safety_index.csv');
-        
+        // Explicitly request from public/data path
+        const response = await fetch('/data/safety_index.csv');
+      
         if (!response.ok) {
           throw new Error(`Failed to fetch safety index data: ${response.status}`);
         }
         
         const csvText = await response.text();
         console.log('Safety Index CSV data loaded:', csvText.length > 0);
-        
-        if (!csvText || csvText.length === 0) {
-          throw new Error('Safety index CSV file is empty');
-        }
         
         // Parse CSV
         const rows = csvText.split('\n');
@@ -107,20 +108,12 @@ const SafetyMetrics = () => {
         const dateIndex = headers.indexOf('Date');
         const safetyIndexIndex = headers.indexOf('safety_index');
         
-        if (dateIndex === -1 || safetyIndexIndex === -1) {
-          throw new Error('Invalid CSV headers in safety index file');
-        }
-        
         // Find the entry for our target date
         const parsedData = [];
         let currentIndex = null;
         
         for (let i = 1; i < rows.length; i++) {
-          if (!rows[i].trim()) continue; // Skip empty rows
-          
           const cells = rows[i].split(',');
-          if (cells.length <= Math.max(dateIndex, safetyIndexIndex)) continue;
-          
           const rowDate = cells[dateIndex];
           const safetyValue = parseFloat(cells[safetyIndexIndex]);
           
@@ -135,7 +128,6 @@ const SafetyMetrics = () => {
           if (rowDate === targetDate) {
             currentIndex = safetyValue;
             setSafetyIndex(safetyValue);
-            console.log('Found safety index for target date:', safetyValue);
           }
         }
         
@@ -163,16 +155,6 @@ const SafetyMetrics = () => {
               setPercentChange(Number(change.toFixed(1)));
             }
           }
-        } else {
-          console.warn('Target date not found in safety index data');
-          // Use the most recent data point if target date not found
-          if (parsedData.length > 0) {
-            const mostRecent = parsedData[parsedData.length - 1];
-            setSafetyIndex(mostRecent.value);
-            console.log('Using most recent safety index:', mostRecent.value);
-          } else {
-            throw new Error('No valid safety index data found');
-          }
         }
       } catch (error) {
         console.error('Error in fetchSafetyIndexData:', error);
@@ -182,7 +164,7 @@ const SafetyMetrics = () => {
 
     const fetchCrimeData = async () => {
       try {
-        const response = await fetch('data/july_2024_crime_summary.csv');
+        const response = await fetch('/data/july_2024_crime_summary.csv');
         
         if (!response.ok) {
           throw new Error(`Failed to fetch crime data: ${response.status}`);
@@ -190,10 +172,6 @@ const SafetyMetrics = () => {
         
         const csvText = await response.text();
         console.log('Crime CSV data loaded:', csvText.length > 0);
-        
-        if (!csvText || csvText.length === 0) {
-          throw new Error('Crime CSV file is empty');
-        }
         
         // Parse CSV
         const rows = csvText.split('\n');
@@ -204,17 +182,16 @@ const SafetyMetrics = () => {
         const typeIndex = headers.indexOf('primary_type');
         const countIndex = headers.indexOf('count');
         
-        if (dateIndex === -1 || typeIndex === -1 || countIndex === -1) {
-          throw new Error('Invalid CSV headers in crime file');
-        }
-        
         const parsedData: CrimeData[] = [];
         let totalCount = 0;
         const crimesOnTargetDate: CrimeData[] = [];
         const previousDayCrimes: CrimeData[] = [];
         
+        // Convert target date to format in CSV (YYYY-MM-DD)
+        const formattedTargetDate = targetDate;
+        
         // Calculate previous date
-        const targetDateObj = new Date(targetDate);
+        const targetDateObj = new Date(formattedTargetDate);
         const previousDateObj = new Date(targetDateObj);
         previousDateObj.setDate(previousDateObj.getDate() - 1);
         const previousDate = previousDateObj.toISOString().split('T')[0];
@@ -223,8 +200,6 @@ const SafetyMetrics = () => {
           if (!rows[i].trim()) continue; // Skip empty rows
           
           const cells = rows[i].split(',');
-          if (cells.length <= Math.max(dateIndex, typeIndex, countIndex)) continue;
-          
           const rowDate = cells[dateIndex];
           const crimeType = cells[typeIndex];
           const crimeCount = parseInt(cells[countIndex], 10);
@@ -239,7 +214,7 @@ const SafetyMetrics = () => {
           });
           
           // Collect crimes on target date
-          if (rowDate === targetDate) {
+          if (rowDate === formattedTargetDate) {
             crimesOnTargetDate.push({
               date: rowDate,
               primary_type: crimeType,
@@ -257,8 +232,6 @@ const SafetyMetrics = () => {
             });
           }
         }
-        
-        console.log(`Found ${crimesOnTargetDate.length} crime types for target date, total: ${totalCount}`);
         
         // Calculate total for previous day
         const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
@@ -295,7 +268,7 @@ const SafetyMetrics = () => {
 
     const fetchTrafficData = async () => {
       try {
-        const response = await fetch('data/traffic_crash_daily_totals_july_2024.csv');
+        const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
         
         if (!response.ok) {
           throw new Error(`Failed to fetch traffic data: ${response.status}`);
@@ -304,18 +277,12 @@ const SafetyMetrics = () => {
         const csvText = await response.text();
         console.log('Traffic CSV data loaded:', csvText.length > 0);
         
-        if (!csvText || csvText.length === 0) {
-          throw new Error('Traffic CSV file is empty');
-        }
-        
         // Parse CSV
         const rows = csvText.split('\n');
         const headers = rows[0].split(',');
         
-        // Find the entry for our target date
+        // Find the entry for July 13, 2024
         for (let i = 1; i < rows.length; i++) {
-          if (!rows[i].trim()) continue; // Skip empty rows
-          
           const cells = rows[i].split(',');
           if (cells[0] === targetDate) {
             setTrafficData({
