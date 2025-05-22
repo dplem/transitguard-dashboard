@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface LineData {
   name: string;
@@ -14,6 +15,7 @@ interface LineData {
 const LineStatus = () => {
   const [trainLines, setTrainLines] = useState<LineData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [riskCategories, setRiskCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +40,7 @@ const LineStatus = () => {
         };
 
         const parsedData: LineData[] = [];
+        const uniqueRiskCategories = new Set<string>();
         
         // Skip header row
         for (let i = 1; i < rows.length; i++) {
@@ -57,9 +60,15 @@ const LineStatus = () => {
             risk,
             color: lineColors[lineName] || '#888888' // Default gray if color not found
           });
+
+          // Add risk category to set of unique categories
+          if (risk) {
+            uniqueRiskCategories.add(risk);
+          }
         }
         
         setTrainLines(parsedData);
+        setRiskCategories(Array.from(uniqueRiskCategories));
       } catch (error) {
         console.error('Error fetching line counts data:', error);
       } finally {
@@ -89,6 +98,17 @@ const LineStatus = () => {
         return 'Caution';
       default:
         return 'Normal';
+    }
+  };
+
+  const getRiskColor = (risk: string) => {
+    switch (risk?.toLowerCase()) {
+      case 'high':
+        return 'bg-transit-red';
+      case 'medium':
+        return 'bg-transit-amber';
+      default:
+        return 'bg-transit-green';
     }
   };
 
@@ -130,18 +150,29 @@ const LineStatus = () => {
           </div>
         )}
         <div className="mt-4 pt-3 border-t flex justify-between text-xs text-gray-500">
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-transit-green mr-1"></div>
-            <span>Normal</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-transit-amber mr-1"></div>
-            <span>Caution</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-transit-red mr-1"></div>
-            <span>Alert</span>
-          </div>
+          {riskCategories.length > 0 ? (
+            riskCategories.map((risk) => (
+              <div key={risk} className="flex items-center">
+                <div className={`w-3 h-3 rounded-full ${getRiskColor(risk)} mr-1`}></div>
+                <span>{mapRiskToStatus(risk)}</span>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-transit-green mr-1"></div>
+                <span>Normal</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-transit-amber mr-1"></div>
+                <span>Caution</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-transit-red mr-1"></div>
+                <span>Alert</span>
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
