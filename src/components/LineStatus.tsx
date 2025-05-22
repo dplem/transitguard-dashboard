@@ -78,17 +78,17 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
-  // Map risk_flag values to appropriate status colors
+  // Function to get the appropriate CSS class for risk badges
   const getRiskBadgeClass = (risk: string) => {
     switch (risk?.toLowerCase()) {
-      case 'High':
-        return 'bg-red-600 text-white';
-      case 'Medium':
-        return 'bg-orange-500 text-white';
-      case 'Low':
-        return 'bg-green-500 text-white';
+      case 'high':
+        return 'bg-red-600 hover:bg-red-600 text-white';
+      case 'medium':
+        return 'bg-orange-500 hover:bg-orange-500 text-white';
+      case 'low':
+        return 'bg-green-500 hover:bg-green-500 text-white';
       default:
-        return 'bg-green-500 text-white'; // Default to green
+        return 'bg-green-500 hover:bg-green-500 text-white'; // Default to green for missing values
     }
   };
 
@@ -97,6 +97,7 @@ const LineStatus = () => {
     return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Low';
   };
 
+  // Function to get color for legend dots
   const getRiskLegendColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
@@ -106,7 +107,7 @@ const LineStatus = () => {
       case 'low':
         return 'bg-green-500';
       default:
-        return 'bg-green-500'; // Default to green
+        return 'bg-green-500'; // Default to green for missing values
     }
   };
 
@@ -139,9 +140,9 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <Badge className={getRiskBadgeClass(line.risk)}>
+                  <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeClass(line.risk)}`}>
                     {mapRiskToStatus(line.risk)}
-                  </Badge>
+                  </div>
                 </div>
               </div>
             ))}
