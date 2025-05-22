@@ -79,23 +79,29 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
+  // Updated to use the actual risk value from CSV directly
   const getStatusColor = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
         return 'bg-transit-red text-white';
       case 'medium':
         return 'bg-transit-amber text-black';
+      case 'low':
+        return 'bg-transit-green text-white';
       default:
         return 'bg-transit-green text-white';
     }
   };
 
+  // Updated to display the actual risk value from CSV
   const mapRiskToStatus = (risk: string) => {
     switch (risk?.toLowerCase()) {
       case 'high':
         return 'Alert';
       case 'medium':
         return 'Caution';
+      case 'low':
+        return 'Normal';
       default:
         return 'Normal';
     }
@@ -107,6 +113,8 @@ const LineStatus = () => {
         return 'bg-transit-red';
       case 'medium':
         return 'bg-transit-amber';
+      case 'low':
+        return 'bg-transit-green';
       default:
         return 'bg-transit-green';
     }
