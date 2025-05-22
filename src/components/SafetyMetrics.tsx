@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Shield, Info, Car, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SafetyIndexData {
   Date: string;
@@ -33,6 +34,7 @@ const SafetyMetrics = () => {
   const [trafficData, setTrafficData] = useState<TrafficCrashData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [showOtherModal, setShowOtherModal] = useState(false);
   
   // Set targetDate to match the CSV format
   const targetDate = "7/13/2024";
@@ -248,12 +250,11 @@ const SafetyMetrics = () => {
           const type = crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase();
           typeCounts[type] = (typeCounts[type] || 0) + crime.count;
         });
-        console.log('typeCounts:', typeCounts);
-        const breakdown = Object.entries(typeCounts).map(([type, count]) => ({ type, count }));
-        console.log('breakdown:', breakdown);
+        // Sort by count descending
+        const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
         setCrimeData(parsedData);
         setTotalCrimes(totalCount);
-        setCrimeBreakdown(breakdown);
+        setCrimeBreakdown(sortedTypes.map(([type, count]) => ({ type, count })));
       } catch (error) {
         console.error('Error in fetchCrimeData:', error);
         throw error;
@@ -373,13 +374,41 @@ const SafetyMetrics = () => {
                 </div>
               )}
               <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
-                {crimeBreakdown.map((crime, index) => (
+                {/* Show top 2 types, group the rest as 'Other' */}
+                {crimeBreakdown.slice(0, 2).map((crime, index) => (
                   <div key={index} className="bg-gray-100 p-2 rounded text-center">
                     <span className="block font-medium">{crime.count}</span>
                     <span className="text-gray-500">{crime.type}</span>
                   </div>
                 ))}
+                {crimeBreakdown.length > 2 && (
+                  <button
+                    className="bg-gray-100 p-2 rounded text-center cursor-pointer hover:bg-gray-200"
+                    onClick={() => setShowOtherModal(true)}
+                  >
+                    <span className="block font-medium">
+                      {crimeBreakdown.slice(2).reduce((sum, crime) => sum + crime.count, 0)}
+                    </span>
+                    <span className="text-gray-500">Other</span>
+                  </button>
+                )}
               </div>
+              {/* Modal for Other crimes */}
+              <Dialog open={showOtherModal} onOpenChange={setShowOtherModal}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Other Crime Types</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {crimeBreakdown.slice(2).map((crime, index) => (
+                      <div key={index} className="bg-gray-100 p-2 rounded text-center">
+                        <span className="block font-medium">{crime.count}</span>
+                        <span className="text-gray-500">{crime.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </CardContent>
