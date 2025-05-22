@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Clock, Info } from 'lucide-react';
@@ -226,7 +225,6 @@ const SafetyMetrics = () => {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-sm font-medium">Total Crime Incidents</CardTitle>
-            <CardDescription>July 13, 2024</CardDescription>
           </div>
           <Info className="h-5 w-5 text-transit-red" />
         </CardHeader>
