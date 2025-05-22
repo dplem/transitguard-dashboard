@@ -1,0 +1,10 @@
+line_code,incident_count,risk_flag
+RED,102,High
+BLUE,59,Medium
+G,28,Low
+BRN,10,Low
+P,6,Low
+Pexp,21,Low
+Y,6,Low
+Pnk,15,Low
+O,27,Low
