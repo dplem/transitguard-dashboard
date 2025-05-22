@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingDown, TrendingUp, Shield, Clock, Info } from 'lucide-react';
@@ -9,7 +10,10 @@ interface SafetyIndexData {
 
 const SafetyMetrics = () => {
   const [safetyIndex, setSafetyIndex] = useState<number | null>(null);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [percentChange, setPercentChange] = useState<number | null>(null);
   const targetDate = "2024-07-13"; // Format in the CSV file
+  const previousWeekDate = "2024-07-06"; // Date exactly one week before
 
   useEffect(() => {
     const fetchSafetyIndexData = async () => {
@@ -25,13 +29,34 @@ const SafetyMetrics = () => {
         const dateIndex = headers.indexOf('Date');
         const safetyIndexIndex = headers.indexOf('safety_index');
         
-        // Find the entry for our target date
+        // Find the entries for our target dates
+        let currentValue = null;
+        let previousValue = null;
+        
         for (let i = 1; i < rows.length; i++) {
           const cells = rows[i].split(',');
-          if (cells[dateIndex] === targetDate) {
-            setSafetyIndex(parseFloat(cells[safetyIndexIndex]));
+          const rowDate = cells[dateIndex];
+          
+          if (rowDate === targetDate) {
+            currentValue = parseFloat(cells[safetyIndexIndex]);
+            setSafetyIndex(currentValue);
+          }
+          
+          if (rowDate === previousWeekDate) {
+            previousValue = parseFloat(cells[safetyIndexIndex]);
+            setPreviousIndex(previousValue);
+          }
+          
+          // Break early if we found both values
+          if (currentValue !== null && previousValue !== null) {
             break;
           }
+        }
+        
+        // Calculate percent change if we have both values
+        if (currentValue !== null && previousValue !== null) {
+          const change = ((currentValue - previousValue) / previousValue) * 100;
+          setPercentChange(Number(change.toFixed(1)));
         }
       } catch (error) {
         console.error('Error fetching safety index data:', error);
@@ -40,10 +65,6 @@ const SafetyMetrics = () => {
 
     fetchSafetyIndexData();
   }, []);
-
-  // Calculate if the trend is up or down compared to previous week
-  // For demo purposes, we'll just show a fixed improvement
-  const improvement = 4;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -59,10 +80,25 @@ const SafetyMetrics = () => {
           <div className="text-2xl font-bold text-transit-amber">
             {safetyIndex !== null ? `${safetyIndex}/100` : "Loading..."}
           </div>
-          <div className="flex items-center mt-1 space-x-1">
-            <TrendingDown className="h-4 w-4 text-transit-green" />
-            <span className="text-xs text-transit-green">{improvement}% improvement from last week</span>
-          </div>
+          {percentChange !== null && (
+            <div className="flex items-center mt-1 space-x-1">
+              {percentChange >= 0 ? (
+                <>
+                  <TrendingUp className="h-4 w-4 text-transit-red" />
+                  <span className="text-xs text-transit-red">
+                    {`${Math.abs(percentChange)}% increase from last week`}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <TrendingDown className="h-4 w-4 text-transit-green" />
+                  <span className="text-xs text-transit-green">
+                    {`${Math.abs(percentChange)}% improvement from last week`}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
           <div className="mt-3 h-2 bg-gray-100 rounded-full">
             <div 
               className="h-full bg-transit-amber rounded-full transition-all duration-500" 
