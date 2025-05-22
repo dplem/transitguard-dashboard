@@ -1,9 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface LineData {
   name: string;
@@ -140,9 +137,9 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <Badge className={`${getStatusColor(line.risk)}`}>
+                  <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(line.risk)}`}>
                     {mapRiskToStatus(line.risk)}
-                  </Badge>
+                  </div>
                 </div>
               </div>
             ))}
