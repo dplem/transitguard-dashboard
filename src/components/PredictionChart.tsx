@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -11,38 +11,133 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface PredictionData {
+  month: string;
+  actual_crime_count: number | null;
+  predicted_crime_count: number;
+}
 
 const PredictionChart = () => {
-  const data = [
-    { time: '6 AM', actual: 4, predicted: 5 },
-    { time: '8 AM', actual: 12, predicted: 11 },
-    { time: '10 AM', actual: 8, predicted: 9 },
-    { time: '12 PM', actual: 10, predicted: 10 },
-    { time: '2 PM', actual: 9, predicted: 11 },
-    { time: '4 PM', actual: 15, predicted: 16 },
-    { time: '6 PM', actual: 18, predicted: 17 },
-    { time: '8 PM', actual: 12, predicted: 14 },
-    { time: '10 PM', actual: 8, predicted: 9 },
-    { time: '12 AM', actual: 5, predicted: 6 },
-    { time: '2 AM', actual: null, predicted: 3 },
-    { time: '4 AM', actual: null, predicted: 2 },
-  ];
+  const [data, setData] = useState<PredictionData[]>([]);
+  const [timeRange, setTimeRange] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/data/sarima_results.csv');
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const csvText = await response.text();
+        
+        // Parse CSV data
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',');
+        
+        const parsedData: PredictionData[] = lines.slice(1).map(line => {
+          const values = line.split(',');
+          return {
+            month: formatMonth(values[0]), // Format the month
+            actual_crime_count: values[1] !== '' ? Math.ceil(Number(values[1])) : null, // Round up
+            predicted_crime_count: Math.ceil(Number(values[2])) // Round up
+          };
+        });
+        
+        setData(parsedData);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading prediction data:', err);
+        setError('Failed to load prediction data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filter data based on selected time range
+  const filteredData = React.useMemo(() => {
+    if (timeRange === "all") return data;
+    
+    const now = new Date();
+    let monthsToShow = 0;
+    
+    switch (timeRange) {
+      case "3m":
+        monthsToShow = 3;
+        break;
+      case "6m":
+        monthsToShow = 6;
+        break;
+      case "12m":
+        monthsToShow = 12;
+        break;
+      default:
+        return data;
+    }
+    
+    return data.slice(-monthsToShow);
+  }, [data, timeRange]);
+
+  // Helper function to format month from YYYY-MM to MMM YYYY
+  const formatMonth = (dateStr: string): string => {
+    const [year, month] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Predictive Analysis</CardTitle>
+          <CardDescription>Loading crime data...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[250px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Predictive Analysis</CardTitle>
+          <CardDescription className="text-red-500">{error}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[250px] w-full flex items-center justify-center border border-dashed border-gray-300 rounded-md">
+            <p className="text-gray-500">Unable to load crime prediction data</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-xl">Predictive Analysis</CardTitle>
-          <CardDescription>Actual vs. Predicted Safety Incidents</CardDescription>
+          <CardDescription>Actual vs. Predicted Crime Incidents</CardDescription>
         </div>
-        <Select defaultValue="today">
+        <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Select view" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="all">All Data</SelectItem>
+            <SelectItem value="3m">Last 3 Months</SelectItem>
+            <SelectItem value="6m">Last 6 Months</SelectItem>
+            <SelectItem value="12m">Last 12 Months</SelectItem>
           </SelectContent>
         </Select>
       </CardHeader>
@@ -50,7 +145,7 @@ const PredictionChart = () => {
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={data}
+              data={filteredData}
               margin={{
                 top: 10,
                 right: 10,
@@ -70,7 +165,7 @@ const PredictionChart = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis 
-                dataKey="time" 
+                dataKey="month" 
                 tick={{ fontSize: 10 }} 
                 tickLine={false}
                 axisLine={{ stroke: '#f0f0f0' }}
@@ -80,7 +175,7 @@ const PredictionChart = () => {
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => `${value}`}
-                domain={[0, 'dataMax + 2']}
+                domain={[0, 'dataMax + 50']}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -89,11 +184,12 @@ const PredictionChart = () => {
                   borderRadius: '6px',
                   fontSize: '12px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }} 
+                }}
+                formatter={(value) => [Number(value).toLocaleString(), null]}
               />
               <Area 
                 type="monotone" 
-                dataKey="actual" 
+                dataKey="actual_crime_count" 
                 stroke="#0EA5E9" 
                 fillOpacity={0.3} 
                 fill="url(#colorActual)" 
@@ -104,7 +200,7 @@ const PredictionChart = () => {
               />
               <Area 
                 type="monotone" 
-                dataKey="predicted" 
+                dataKey="predicted_crime_count" 
                 stroke="#8B5CF6" 
                 fillOpacity={0.3}
                 fill="url(#colorPredicted)" 
@@ -119,12 +215,12 @@ const PredictionChart = () => {
         </div>
         <div className="flex justify-center mt-4 space-x-6 text-sm">
           <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-transit-blue mr-2"></div>
-            <span>Actual Incidents</span>
+            <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+            <span>Actual Crime Incidents</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-transit-purple mr-2"></div>
-            <span>Predicted Incidents</span>
+            <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+            <span>Predicted Crime Incidents</span>
           </div>
         </div>
       </CardContent>
