@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Menu, TramFront } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 
@@ -23,10 +23,6 @@ const Header = () => {
         
         <div className="flex items-center space-x-4">
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-              <TramFront className="h-4 w-4" />
-              <span>Live Transit</span>
-            </Button>
             <ModeToggle />
           </div>
           
