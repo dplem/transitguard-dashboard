@@ -16,9 +16,7 @@ const Dashboard = () => {
       <main className="flex-1 container mx-auto px-4 py-6">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-transit-blue dark:text-blue-300">Safety Overview</h2>
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </div>
+          {/* Removed the date display here as requested */}
         </div>
         
         <div className="space-y-6">
@@ -39,8 +37,7 @@ const Dashboard = () => {
       <footer className="bg-white dark:bg-[#0A1823] border-t border-gray-200 dark:border-gray-800 py-4 px-6 shadow-inner">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
-            <img src="/lovable-uploads/d59640d7-3328-4836-9b81-01e8bd08d51f.png" alt="CTA Logo" className="h-8 mr-2" />
-            <img src="/logo/transitguard_logo.png" alt="TransitGuard Logo" className="h-8" />
+            <img src="/lovable-uploads/5de9f635-9783-4fac-a8a0-82ad46bb374a.png" alt="TransitGuard Logo" className="h-10" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">© 2025 TransitGuard | Real-Time Safety for Chicago Transit</p>
           <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 md:mt-0">
