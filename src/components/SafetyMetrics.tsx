@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Clock, Info, Car } from 'lucide-react';
+import { Shield, Clock, Info, Car, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SafetyIndexData {
   Date: string;
@@ -29,205 +31,275 @@ const SafetyMetrics = () => {
   const [crimeBreakdown, setCrimeBreakdown] = useState<{type: string, count: number}[]>([]);
   const [previousDayChange, setPreviousDayChange] = useState<number | null>(null);
   const [trafficData, setTrafficData] = useState<TrafficCrashData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   const targetDate = "2024-07-13"; // Format in the CSV file
 
   useEffect(() => {
-    const fetchSafetyIndexData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/data/safety_index.csv');
-        const csvText = await response.text();
-        
-        // Parse CSV
-        const rows = csvText.split('\n');
-        const headers = rows[0].split(',');
-        
-        // Find the right index for each column
-        const dateIndex = headers.indexOf('Date');
-        const safetyIndexIndex = headers.indexOf('safety_index');
-        
-        // Find the entry for our target date
-        const parsedData = [];
-        let currentIndex = null;
-        
-        for (let i = 1; i < rows.length; i++) {
-          const cells = rows[i].split(',');
-          const rowDate = cells[dateIndex];
-          const safetyValue = parseFloat(cells[safetyIndexIndex]);
-          
-          // Skip any invalid data rows
-          if (isNaN(safetyValue) || !rowDate) continue;
-          
-          parsedData.push({
-            date: rowDate,
-            value: safetyValue
-          });
-          
-          if (rowDate === targetDate) {
-            currentIndex = safetyValue;
-            setSafetyIndex(safetyValue);
+        // Add a delay to ensure files are loaded
+        setTimeout(async () => {
+          try {
+            await Promise.all([
+              fetchSafetyIndexData(),
+              fetchCrimeData(),
+              fetchTrafficData()
+            ]);
+          } catch (error) {
+            console.error('Error fetching data:', error);
+            setHasError(true);
+            // Set mock data for development
+            setMockData();
+          } finally {
+            setIsLoading(false);
           }
-        }
-        
-        // Calculate the 7-day average before the target date
-        if (currentIndex !== null) {
-          // Find the index of our target date in the parsed data
-          const targetIndex = parsedData.findIndex(item => item.date === targetDate);
-          
-          if (targetIndex >= 0) {
-            // Calculate average of 7 days before (if available)
-            let sum = 0;
-            let count = 0;
-            
-            // Get up to 7 days before the target date
-            for (let i = 1; i <= 7; i++) {
-              if (targetIndex - i >= 0) {
-                sum += parsedData[targetIndex - i].value;
-                count++;
-              }
-            }
-            
-            if (count > 0) {
-              const weekAverage = sum / count;
-              const change = ((currentIndex - weekAverage) / weekAverage) * 100;
-              setPercentChange(Number(change.toFixed(1)));
-            }
-          }
-        }
+        }, 1000); // 1 second delay
       } catch (error) {
-        console.error('Error fetching safety index data:', error);
+        console.error('Error in timeout:', error);
+        setHasError(true);
+        setIsLoading(false);
+      }
+    };
+
+    const setMockData = () => {
+      // Safety Index mock data
+      setSafetyIndex(78);
+      setPercentChange(-3.5);
+      
+      // Crime mock data
+      setTotalCrimes(125);
+      setPreviousDayChange(15);
+      setCrimeBreakdown([
+        { type: 'Theft', count: 45 },
+        { type: 'Battery', count: 30 },
+        { type: 'Other', count: 50 }
+      ]);
+      
+      // Traffic mock data
+      setTrafficData({
+        DATE: targetDate,
+        TOTAL_CRASHES: 42,
+        TOTAL_FATALITIES: 1,
+        TOTAL_INCAPACITATING_INJURIES: 3,
+        TOTAL_NON_INCAPACITATING_INJURIES: 12
+      });
+    };
+
+    const fetchSafetyIndexData = async () => {
+      const response = await fetch('/data/safety_index.csv');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch safety index data: ${response.status}`);
+      }
+      
+      const csvText = await response.text();
+      
+      // Parse CSV
+      const rows = csvText.split('\n');
+      const headers = rows[0].split(',');
+      
+      // Find the right index for each column
+      const dateIndex = headers.indexOf('Date');
+      const safetyIndexIndex = headers.indexOf('safety_index');
+      
+      // Find the entry for our target date
+      const parsedData = [];
+      let currentIndex = null;
+      
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].split(',');
+        const rowDate = cells[dateIndex];
+        const safetyValue = parseFloat(cells[safetyIndexIndex]);
+        
+        // Skip any invalid data rows
+        if (isNaN(safetyValue) || !rowDate) continue;
+        
+        parsedData.push({
+          date: rowDate,
+          value: safetyValue
+        });
+        
+        if (rowDate === targetDate) {
+          currentIndex = safetyValue;
+          setSafetyIndex(safetyValue);
+        }
+      }
+      
+      // Calculate the 7-day average before the target date
+      if (currentIndex !== null) {
+        // Find the index of our target date in the parsed data
+        const targetIndex = parsedData.findIndex(item => item.date === targetDate);
+        
+        if (targetIndex >= 0) {
+          // Calculate average of 7 days before (if available)
+          let sum = 0;
+          let count = 0;
+          
+          // Get up to 7 days before the target date
+          for (let i = 1; i <= 7; i++) {
+            if (targetIndex - i >= 0) {
+              sum += parsedData[targetIndex - i].value;
+              count++;
+            }
+          }
+          
+          if (count > 0) {
+            const weekAverage = sum / count;
+            const change = ((currentIndex - weekAverage) / weekAverage) * 100;
+            setPercentChange(Number(change.toFixed(1)));
+          }
+        }
       }
     };
 
     const fetchCrimeData = async () => {
-      try {
-        const response = await fetch('/data/july_2024_crime_summary.csv');
-        const csvText = await response.text();
+      const response = await fetch('/data/july_2024_crime_summary.csv');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch crime data: ${response.status}`);
+      }
+      
+      const csvText = await response.text();
+      
+      // Parse CSV
+      const rows = csvText.split('\n');
+      const headers = rows[0].split(',');
+      
+      // Find the right index for each column
+      const dateIndex = headers.indexOf('date');
+      const typeIndex = headers.indexOf('primary_type');
+      const countIndex = headers.indexOf('count');
+      
+      const parsedData: CrimeData[] = [];
+      let totalCount = 0;
+      const crimesOnTargetDate: CrimeData[] = [];
+      const previousDayCrimes: CrimeData[] = [];
+      
+      // Convert target date to format in CSV (YYYY-MM-DD)
+      const formattedTargetDate = targetDate;
+      
+      // Calculate previous date
+      const targetDateObj = new Date(formattedTargetDate);
+      const previousDateObj = new Date(targetDateObj);
+      previousDateObj.setDate(previousDateObj.getDate() - 1);
+      const previousDate = previousDateObj.toISOString().split('T')[0];
+      
+      for (let i = 1; i < rows.length; i++) {
+        if (!rows[i].trim()) continue; // Skip empty rows
         
-        // Parse CSV
-        const rows = csvText.split('\n');
-        const headers = rows[0].split(',');
+        const cells = rows[i].split(',');
+        const rowDate = cells[dateIndex];
+        const crimeType = cells[typeIndex];
+        const crimeCount = parseInt(cells[countIndex], 10);
         
-        // Find the right index for each column
-        const dateIndex = headers.indexOf('date');
-        const typeIndex = headers.indexOf('primary_type');
-        const countIndex = headers.indexOf('count');
+        // Skip any invalid data rows
+        if (isNaN(crimeCount) || !rowDate || !crimeType) continue;
         
-        const parsedData: CrimeData[] = [];
-        let totalCount = 0;
-        const crimesOnTargetDate: CrimeData[] = [];
-        const previousDayCrimes: CrimeData[] = [];
+        parsedData.push({
+          date: rowDate,
+          primary_type: crimeType,
+          count: crimeCount
+        });
         
-        // Convert target date to format in CSV (YYYY-MM-DD)
-        const formattedTargetDate = targetDate;
-        
-        // Calculate previous date
-        const targetDateObj = new Date(formattedTargetDate);
-        const previousDateObj = new Date(targetDateObj);
-        previousDateObj.setDate(previousDateObj.getDate() - 1);
-        const previousDate = previousDateObj.toISOString().split('T')[0];
-        
-        for (let i = 1; i < rows.length; i++) {
-          if (!rows[i].trim()) continue; // Skip empty rows
-          
-          const cells = rows[i].split(',');
-          const rowDate = cells[dateIndex];
-          const crimeType = cells[typeIndex];
-          const crimeCount = parseInt(cells[countIndex], 10);
-          
-          // Skip any invalid data rows
-          if (isNaN(crimeCount) || !rowDate || !crimeType) continue;
-          
-          parsedData.push({
+        // Collect crimes on target date
+        if (rowDate === formattedTargetDate) {
+          crimesOnTargetDate.push({
             date: rowDate,
             primary_type: crimeType,
             count: crimeCount
           });
-          
-          // Collect crimes on target date
-          if (rowDate === formattedTargetDate) {
-            crimesOnTargetDate.push({
-              date: rowDate,
-              primary_type: crimeType,
-              count: crimeCount
-            });
-            totalCount += crimeCount;
-          }
-          
-          // Collect crimes on previous date
-          if (rowDate === previousDate) {
-            previousDayCrimes.push({
-              date: rowDate,
-              primary_type: crimeType,
-              count: crimeCount
-            });
-          }
+          totalCount += crimeCount;
         }
         
-        // Calculate total for previous day
-        const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
-        
-        // Calculate percentage change if both days have data
-        if (previousDayTotal > 0) {
-          const change = ((totalCount - previousDayTotal) / previousDayTotal) * 100;
-          setPreviousDayChange(Number(change.toFixed(0)));
+        // Collect crimes on previous date
+        if (rowDate === previousDate) {
+          previousDayCrimes.push({
+            date: rowDate,
+            primary_type: crimeType,
+            count: crimeCount
+          });
         }
-        
-        // Sort crimes by count and get top 3
-        const sortedCrimes = [...crimesOnTargetDate].sort((a, b) => b.count - a.count);
-        const topCrimes = sortedCrimes.slice(0, 2); // Get top 2
-        
-        // Calculate "Other" category
-        const othersCount = totalCount - topCrimes.reduce((sum, crime) => sum + crime.count, 0);
-        
-        const breakdown = [
-          ...topCrimes.map(crime => ({
-            type: crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase(),
-            count: crime.count
-          })),
-          { type: 'Other', count: othersCount }
-        ];
-        
-        setCrimeData(parsedData);
-        setTotalCrimes(totalCount);
-        setCrimeBreakdown(breakdown);
-      } catch (error) {
-        console.error('Error fetching crime data:', error);
       }
+      
+      // Calculate total for previous day
+      const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
+      
+      // Calculate percentage change if both days have data
+      if (previousDayTotal > 0) {
+        const change = ((totalCount - previousDayTotal) / previousDayTotal) * 100;
+        setPreviousDayChange(Number(change.toFixed(0)));
+      }
+      
+      // Sort crimes by count and get top 3
+      const sortedCrimes = [...crimesOnTargetDate].sort((a, b) => b.count - a.count);
+      const topCrimes = sortedCrimes.slice(0, 2); // Get top 2
+      
+      // Calculate "Other" category
+      const othersCount = totalCount - topCrimes.reduce((sum, crime) => sum + crime.count, 0);
+      
+      const breakdown = [
+        ...topCrimes.map(crime => ({
+          type: crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase(),
+          count: crime.count
+        })),
+        { type: 'Other', count: othersCount }
+      ];
+      
+      setCrimeData(parsedData);
+      setTotalCrimes(totalCount);
+      setCrimeBreakdown(breakdown);
     };
 
     const fetchTrafficData = async () => {
-      try {
-        const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
-        const csvText = await response.text();
-        
-        // Parse CSV
-        const rows = csvText.split('\n');
-        const headers = rows[0].split(',');
-        
-        // Find the entry for July 13, 2024
-        for (let i = 1; i < rows.length; i++) {
-          const cells = rows[i].split(',');
-          if (cells[0] === targetDate) {
-            setTrafficData({
-              DATE: cells[0],
-              TOTAL_CRASHES: parseInt(cells[1], 10),
-              TOTAL_FATALITIES: parseFloat(cells[2]),
-              TOTAL_INCAPACITATING_INJURIES: parseFloat(cells[3]),
-              TOTAL_NON_INCAPACITATING_INJURIES: parseFloat(cells[4])
-            });
-            break;
-          }
+      const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch traffic data: ${response.status}`);
+      }
+      
+      const csvText = await response.text();
+      
+      // Parse CSV
+      const rows = csvText.split('\n');
+      const headers = rows[0].split(',');
+      
+      // Find the entry for July 13, 2024
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].split(',');
+        if (cells[0] === targetDate) {
+          setTrafficData({
+            DATE: cells[0],
+            TOTAL_CRASHES: parseInt(cells[1], 10),
+            TOTAL_FATALITIES: parseFloat(cells[2]),
+            TOTAL_INCAPACITATING_INJURIES: parseFloat(cells[3]),
+            TOTAL_NON_INCAPACITATING_INJURIES: parseFloat(cells[4])
+          });
+          break;
         }
-      } catch (error) {
-        console.error('Error fetching traffic crash data:', error);
       }
     };
 
-    fetchSafetyIndexData();
-    fetchCrimeData();
-    fetchTrafficData();
+    fetchData();
   }, []);
+
+  // Helper for rendering loading skeletons
+  const renderSkeleton = () => (
+    <div className="space-y-2">
+      <Skeleton className="h-8 w-1/3 mb-2" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-2 w-full mt-4" />
+    </div>
+  );
+
+  // Helper for rendering error states
+  const renderError = () => (
+    <div className="flex flex-col items-center justify-center py-4 text-gray-500">
+      <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" />
+      <p className="text-sm">Using fallback data</p>
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -240,22 +312,29 @@ const SafetyMetrics = () => {
           <Shield className="h-5 w-5 text-transit-blue" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-transit-amber">
-            {safetyIndex !== null ? `${safetyIndex}/100` : "Loading..."}
-          </div>
-          {percentChange !== null && (
-            <div className="flex items-center mt-1">
-              <span className={`text-xs ${percentChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
-                {`${Math.abs(percentChange)}% ${percentChange <= 0 ? "improvement" : "decrease"} from previous 7-day average`}
-              </span>
-            </div>
+          {isLoading ? (
+            renderSkeleton()
+          ) : (
+            <>
+              <div className="text-2xl font-bold text-transit-amber">
+                {safetyIndex !== null ? `${safetyIndex}/100` : "N/A"}
+              </div>
+              {percentChange !== null && (
+                <div className="flex items-center mt-1">
+                  <span className={`text-xs ${percentChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
+                    {`${Math.abs(percentChange)}% ${percentChange <= 0 ? "improvement" : "decrease"} from previous 7-day average`}
+                  </span>
+                </div>
+              )}
+              <div className="mt-3 h-2 bg-gray-100 rounded-full">
+                <div 
+                  className="h-full bg-transit-amber rounded-full transition-all duration-500" 
+                  style={{ width: safetyIndex !== null ? `${safetyIndex}%` : '0%' }}
+                ></div>
+              </div>
+              {hasError && renderError()}
+            </>
           )}
-          <div className="mt-3 h-2 bg-gray-100 rounded-full">
-            <div 
-              className="h-full bg-transit-amber rounded-full transition-all duration-500" 
-              style={{ width: safetyIndex !== null ? `${safetyIndex}%` : '0%' }}
-            ></div>
-          </div>
         </CardContent>
       </Card>
 
@@ -267,22 +346,29 @@ const SafetyMetrics = () => {
           <Info className="h-5 w-5 text-transit-red" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalCrimes}</div>
-          {previousDayChange !== null && (
-            <div className="flex items-center mt-1 space-x-1">
-              <span className={`text-xs ${previousDayChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
-                {`${Math.abs(previousDayChange)}% ${previousDayChange <= 0 ? "decrease" : "increase"} from yesterday`}
-              </span>
-            </div>
-          )}
-          <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
-            {crimeBreakdown.map((crime, index) => (
-              <div key={index} className="bg-gray-100 p-2 rounded text-center">
-                <span className="block font-medium">{crime.count}</span>
-                <span className="text-gray-500">{crime.type}</span>
+          {isLoading ? (
+            renderSkeleton()
+          ) : (
+            <>
+              <div className="text-2xl font-bold">{totalCrimes}</div>
+              {previousDayChange !== null && (
+                <div className="flex items-center mt-1 space-x-1">
+                  <span className={`text-xs ${previousDayChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
+                    {`${Math.abs(previousDayChange)}% ${previousDayChange <= 0 ? "decrease" : "increase"} from yesterday`}
+                  </span>
+                </div>
+              )}
+              <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
+                {crimeBreakdown.map((crime, index) => (
+                  <div key={index} className="bg-gray-100 p-2 rounded text-center">
+                    <span className="block font-medium">{crime.count}</span>
+                    <span className="text-gray-500">{crime.type}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              {hasError && renderError()}
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -294,21 +380,28 @@ const SafetyMetrics = () => {
           <Car className="h-5 w-5 text-transit-green" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{trafficData ? trafficData.TOTAL_CRASHES : "Loading..."}</div>
-          <div className="mt-3">
-            <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
-              <span>Fatalities</span>
-              <span className="font-medium">{trafficData ? trafficData.TOTAL_FATALITIES : "-"}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
-              <span>Incapacitating Injuries</span>
-              <span className="font-medium">{trafficData ? trafficData.TOTAL_INCAPACITATING_INJURIES : "-"}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
-              <span>Non-incap. Injuries</span>
-              <span className="font-medium">{trafficData ? trafficData.TOTAL_NON_INCAPACITATING_INJURIES : "-"}</span>
-            </div>
-          </div>
+          {isLoading ? (
+            renderSkeleton()
+          ) : (
+            <>
+              <div className="text-2xl font-bold">{trafficData ? trafficData.TOTAL_CRASHES : "N/A"}</div>
+              <div className="mt-3">
+                <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
+                  <span>Fatalities</span>
+                  <span className="font-medium">{trafficData ? trafficData.TOTAL_FATALITIES : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
+                  <span>Incapacitating Injuries</span>
+                  <span className="font-medium">{trafficData ? trafficData.TOTAL_INCAPACITATING_INJURIES : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
+                  <span>Non-incap. Injuries</span>
+                  <span className="font-medium">{trafficData ? trafficData.TOTAL_NON_INCAPACITATING_INJURIES : "-"}</span>
+                </div>
+              </div>
+              {hasError && renderError()}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

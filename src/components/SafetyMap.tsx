@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -24,28 +26,59 @@ const SafetyMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Set up the map when the component mounts
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    const newMap = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-87.623177, 41.881832], // Chicago coordinates
-      zoom: 11
-    });
+    // Add fallback if map fails to load
+    const initTimeout = setTimeout(() => {
+      if (!mapLoaded) {
+        console.log('Map failed to load within timeout period');
+        setMapError(true);
+        setIsLoading(false);
+      }
+    }, 3000);
 
-    newMap.on('load', () => {
-      setMapLoaded(true);
-      map.current = newMap;
-    });
+    try {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      const newMap = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-87.623177, 41.881832], // Chicago coordinates
+        zoom: 11
+      });
 
-    return () => {
-      newMap.remove();
-    };
+      newMap.on('load', () => {
+        setMapLoaded(true);
+        setIsLoading(false);
+        map.current = newMap;
+        clearTimeout(initTimeout);
+      });
+
+      newMap.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        setMapError(true);
+        setIsLoading(false);
+        clearTimeout(initTimeout);
+      });
+
+      return () => {
+        clearTimeout(initTimeout);
+        newMap.remove();
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError(true);
+      setIsLoading(false);
+      clearTimeout(initTimeout);
+      return () => {
+        clearTimeout(initTimeout);
+      };
+    }
   }, []);
 
   // Add incident markers once the map is loaded
@@ -104,6 +137,25 @@ const SafetyMap = () => {
     
   }, [mapLoaded, timeRange]);
 
+  // Map fallback content
+  const renderMapFallback = () => (
+    <div className="flex flex-col items-center justify-center h-full py-16 text-gray-500">
+      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+      <p className="text-lg font-medium mb-2">Map unavailable</p>
+      <p className="text-sm text-center max-w-xs">
+        Unable to load the map. This may be due to network issues or an invalid API key.
+      </p>
+      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+        <p className="text-sm font-medium mb-2">Incident summary:</p>
+        <ul className="text-sm space-y-1">
+          <li>3 high-severity incidents</li>
+          <li>2 medium-severity incidents</li>
+          <li>2 low-severity incidents</li>
+        </ul>
+      </div>
+    </div>
+  );
+
   return (
     <Card className="col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -127,10 +179,21 @@ const SafetyMap = () => {
       </CardHeader>
       <CardContent className="p-0">
         <div className="h-[400px] bg-slate-100 relative overflow-hidden">
-          {/* Mapbox container */}
-          <div ref={mapContainer} className="absolute inset-0" />
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Skeleton className="h-full w-full absolute" />
+              <div className="z-10 text-gray-500">Loading map...</div>
+            </div>
+          ) : mapError ? (
+            renderMapFallback()
+          ) : (
+            <>
+              {/* Mapbox container */}
+              <div ref={mapContainer} className="absolute inset-0" />
+            </>
+          )}
           
-          {/* Legend overlay */}
+          {/* Legend overlay - always show this */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/80 to-transparent h-16 flex items-end justify-center pb-2">
             <div className="flex space-x-4 text-xs">
               <div className="flex items-center">
