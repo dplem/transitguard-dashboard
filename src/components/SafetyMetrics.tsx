@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingDown, TrendingUp, Shield, Clock, Info } from 'lucide-react';
+import { Shield, Clock, Info } from 'lucide-react';
 
 interface SafetyIndexData {
   Date: string;
@@ -10,10 +10,8 @@ interface SafetyIndexData {
 
 const SafetyMetrics = () => {
   const [safetyIndex, setSafetyIndex] = useState<number | null>(null);
-  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
   const [percentChange, setPercentChange] = useState<number | null>(null);
   const targetDate = "2024-07-13"; // Format in the CSV file
-  const previousWeekDate = "2024-07-06"; // Date exactly one week before
 
   useEffect(() => {
     const fetchSafetyIndexData = async () => {
@@ -29,34 +27,53 @@ const SafetyMetrics = () => {
         const dateIndex = headers.indexOf('Date');
         const safetyIndexIndex = headers.indexOf('safety_index');
         
-        // Find the entries for our target dates
-        let currentValue = null;
-        let previousValue = null;
+        // Find the entry for our target date
+        const parsedData = [];
+        let currentIndex = null;
         
         for (let i = 1; i < rows.length; i++) {
           const cells = rows[i].split(',');
           const rowDate = cells[dateIndex];
+          const safetyValue = parseFloat(cells[safetyIndexIndex]);
+          
+          // Skip any invalid data rows
+          if (isNaN(safetyValue) || !rowDate) continue;
+          
+          parsedData.push({
+            date: rowDate,
+            value: safetyValue
+          });
           
           if (rowDate === targetDate) {
-            currentValue = parseFloat(cells[safetyIndexIndex]);
-            setSafetyIndex(currentValue);
-          }
-          
-          if (rowDate === previousWeekDate) {
-            previousValue = parseFloat(cells[safetyIndexIndex]);
-            setPreviousIndex(previousValue);
-          }
-          
-          // Break early if we found both values
-          if (currentValue !== null && previousValue !== null) {
-            break;
+            currentIndex = safetyValue;
+            setSafetyIndex(safetyValue);
           }
         }
         
-        // Calculate percent change if we have both values
-        if (currentValue !== null && previousValue !== null) {
-          const change = ((currentValue - previousValue) / previousValue) * 100;
-          setPercentChange(Number(change.toFixed(1)));
+        // Calculate the 7-day average before the target date
+        if (currentIndex !== null) {
+          // Find the index of our target date in the parsed data
+          const targetIndex = parsedData.findIndex(item => item.date === targetDate);
+          
+          if (targetIndex >= 0) {
+            // Calculate average of 7 days before (if available)
+            let sum = 0;
+            let count = 0;
+            
+            // Get up to 7 days before the target date
+            for (let i = 1; i <= 7; i++) {
+              if (targetIndex - i >= 0) {
+                sum += parsedData[targetIndex - i].value;
+                count++;
+              }
+            }
+            
+            if (count > 0) {
+              const weekAverage = sum / count;
+              const change = ((currentIndex - weekAverage) / weekAverage) * 100;
+              setPercentChange(Number(change.toFixed(1)));
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching safety index data:', error);
@@ -81,22 +98,10 @@ const SafetyMetrics = () => {
             {safetyIndex !== null ? `${safetyIndex}/100` : "Loading..."}
           </div>
           {percentChange !== null && (
-            <div className="flex items-center mt-1 space-x-1">
-              {percentChange >= 0 ? (
-                <>
-                  <TrendingUp className="h-4 w-4 text-transit-red" />
-                  <span className="text-xs text-transit-red">
-                    {`${Math.abs(percentChange)}% increase from last week`}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-4 w-4 text-transit-green" />
-                  <span className="text-xs text-transit-green">
-                    {`${Math.abs(percentChange)}% improvement from last week`}
-                  </span>
-                </>
-              )}
+            <div className="flex items-center mt-1">
+              <span className={`text-xs ${percentChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
+                {`${Math.abs(percentChange)}% ${percentChange <= 0 ? "improvement" : "decrease"} from previous 7-day average`}
+              </span>
             </div>
           )}
           <div className="mt-3 h-2 bg-gray-100 rounded-full">
@@ -119,7 +124,6 @@ const SafetyMetrics = () => {
         <CardContent>
           <div className="text-2xl font-bold">27</div>
           <div className="flex items-center mt-1 space-x-1">
-            <TrendingUp className="h-4 w-4 text-transit-red" />
             <span className="text-xs text-transit-red">12% increase from yesterday</span>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
@@ -149,8 +153,7 @@ const SafetyMetrics = () => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">5.2 min</div>
-          <div className="flex items-center mt-1 space-x-1">
-            <TrendingDown className="h-4 w-4 text-transit-green" />
+          <div className="flex items-center mt-1">
             <span className="text-xs text-transit-green">0.5 min faster than last month</span>
           </div>
           <div className="mt-3">
