@@ -8,9 +8,20 @@ interface SafetyIndexData {
   safety_index: number;
 }
 
+interface CrimeData {
+  date: string;
+  primary_type: string;
+  count: number;
+}
+
 const SafetyMetrics = () => {
   const [safetyIndex, setSafetyIndex] = useState<number | null>(null);
   const [percentChange, setPercentChange] = useState<number | null>(null);
+  const [crimeData, setCrimeData] = useState<CrimeData[]>([]);
+  const [totalCrimes, setTotalCrimes] = useState<number>(0);
+  const [crimeBreakdown, setCrimeBreakdown] = useState<{type: string, count: number}[]>([]);
+  const [previousDayChange, setPreviousDayChange] = useState<number | null>(null);
+  
   const targetDate = "2024-07-13"; // Format in the CSV file
 
   useEffect(() => {
@@ -80,7 +91,105 @@ const SafetyMetrics = () => {
       }
     };
 
+    const fetchCrimeData = async () => {
+      try {
+        const response = await fetch('/data/july_2024_crime_summary.csv');
+        const csvText = await response.text();
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
+        
+        // Find the right index for each column
+        const dateIndex = headers.indexOf('date');
+        const typeIndex = headers.indexOf('primary_type');
+        const countIndex = headers.indexOf('count');
+        
+        const parsedData: CrimeData[] = [];
+        let totalCount = 0;
+        const crimesOnTargetDate: CrimeData[] = [];
+        const previousDayCrimes: CrimeData[] = [];
+        
+        // Convert target date to format in CSV (YYYY-MM-DD)
+        const formattedTargetDate = targetDate;
+        
+        // Calculate previous date
+        const targetDateObj = new Date(formattedTargetDate);
+        const previousDateObj = new Date(targetDateObj);
+        previousDateObj.setDate(previousDateObj.getDate() - 1);
+        const previousDate = previousDateObj.toISOString().split('T')[0];
+        
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i].trim()) continue; // Skip empty rows
+          
+          const cells = rows[i].split(',');
+          const rowDate = cells[dateIndex];
+          const crimeType = cells[typeIndex];
+          const crimeCount = parseInt(cells[countIndex], 10);
+          
+          // Skip any invalid data rows
+          if (isNaN(crimeCount) || !rowDate || !crimeType) continue;
+          
+          parsedData.push({
+            date: rowDate,
+            primary_type: crimeType,
+            count: crimeCount
+          });
+          
+          // Collect crimes on target date
+          if (rowDate === formattedTargetDate) {
+            crimesOnTargetDate.push({
+              date: rowDate,
+              primary_type: crimeType,
+              count: crimeCount
+            });
+            totalCount += crimeCount;
+          }
+          
+          // Collect crimes on previous date
+          if (rowDate === previousDate) {
+            previousDayCrimes.push({
+              date: rowDate,
+              primary_type: crimeType,
+              count: crimeCount
+            });
+          }
+        }
+        
+        // Calculate total for previous day
+        const previousDayTotal = previousDayCrimes.reduce((sum, crime) => sum + crime.count, 0);
+        
+        // Calculate percentage change if both days have data
+        if (previousDayTotal > 0) {
+          const change = ((totalCount - previousDayTotal) / previousDayTotal) * 100;
+          setPreviousDayChange(Number(change.toFixed(0)));
+        }
+        
+        // Sort crimes by count and get top 3
+        const sortedCrimes = [...crimesOnTargetDate].sort((a, b) => b.count - a.count);
+        const topCrimes = sortedCrimes.slice(0, 2); // Get top 2
+        
+        // Calculate "Other" category
+        const othersCount = totalCount - topCrimes.reduce((sum, crime) => sum + crime.count, 0);
+        
+        const breakdown = [
+          ...topCrimes.map(crime => ({
+            type: crime.primary_type.charAt(0).toUpperCase() + crime.primary_type.slice(1).toLowerCase(),
+            count: crime.count
+          })),
+          { type: 'Other', count: othersCount }
+        ];
+        
+        setCrimeData(parsedData);
+        setTotalCrimes(totalCount);
+        setCrimeBreakdown(breakdown);
+      } catch (error) {
+        console.error('Error fetching crime data:', error);
+      }
+    };
+
     fetchSafetyIndexData();
+    fetchCrimeData();
   }, []);
 
   return (
@@ -116,29 +225,27 @@ const SafetyMetrics = () => {
       <Card className="shadow-md overflow-hidden border-t-4 border-t-transit-red">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-sm font-medium">Total Incidents</CardTitle>
-            <CardDescription>Last 24 hours</CardDescription>
+            <CardTitle className="text-sm font-medium">Total Crime Incidents</CardTitle>
+            <CardDescription>July 13, 2024</CardDescription>
           </div>
           <Info className="h-5 w-5 text-transit-red" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">27</div>
-          <div className="flex items-center mt-1 space-x-1">
-            <span className="text-xs text-transit-red">12% increase from yesterday</span>
-          </div>
+          <div className="text-2xl font-bold">{totalCrimes}</div>
+          {previousDayChange !== null && (
+            <div className="flex items-center mt-1 space-x-1">
+              <span className={`text-xs ${previousDayChange <= 0 ? "text-transit-green" : "text-transit-red"}`}>
+                {`${Math.abs(previousDayChange)}% ${previousDayChange <= 0 ? "decrease" : "increase"} from yesterday`}
+              </span>
+            </div>
+          )}
           <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
-            <div className="bg-gray-100 p-2 rounded text-center">
-              <span className="block font-medium">14</span>
-              <span className="text-gray-500">Theft</span>
-            </div>
-            <div className="bg-gray-100 p-2 rounded text-center">
-              <span className="block font-medium">8</span>
-              <span className="text-gray-500">Battery</span>
-            </div>
-            <div className="bg-gray-100 p-2 rounded text-center">
-              <span className="block font-medium">5</span>
-              <span className="text-gray-500">Other</span>
-            </div>
+            {crimeBreakdown.map((crime, index) => (
+              <div key={index} className="bg-gray-100 p-2 rounded text-center">
+                <span className="block font-medium">{crime.count}</span>
+                <span className="text-gray-500">{crime.type}</span>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
