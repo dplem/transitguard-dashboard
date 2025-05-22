@@ -1,10 +1,10 @@
 line_code,incident_count,risk_flag
-RED,102,High
-BLUE,59,Medium
-G,28,Low
-BRN,10,Low
-P,6,Low
-Pexp,21,Low
-Y,6,Low
-Pnk,15,Low
-O,27,Low
+Red Line,102,High
+Blue Line,59,Medium
+Green Line,28,Low
+Brown Line,10,Low
+Purple,6,Low
+Purple Line Express,21,Low
+Yellow Line,6,Low
+Pink Line,15,Low
+Orange Line,27,Low
