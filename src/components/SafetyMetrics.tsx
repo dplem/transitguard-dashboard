@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Clock, Info } from 'lucide-react';
+import { Shield, Clock, Info, Car } from 'lucide-react';
 
 interface SafetyIndexData {
   Date: string;
@@ -13,6 +13,14 @@ interface CrimeData {
   count: number;
 }
 
+interface TrafficCrashData {
+  DATE: string;
+  TOTAL_CRASHES: number;
+  TOTAL_FATALITIES: number;
+  TOTAL_INCAPACITATING_INJURIES: number;
+  TOTAL_NON_INCAPACITATING_INJURIES: number;
+}
+
 const SafetyMetrics = () => {
   const [safetyIndex, setSafetyIndex] = useState<number | null>(null);
   const [percentChange, setPercentChange] = useState<number | null>(null);
@@ -20,6 +28,7 @@ const SafetyMetrics = () => {
   const [totalCrimes, setTotalCrimes] = useState<number>(0);
   const [crimeBreakdown, setCrimeBreakdown] = useState<{type: string, count: number}[]>([]);
   const [previousDayChange, setPreviousDayChange] = useState<number | null>(null);
+  const [trafficData, setTrafficData] = useState<TrafficCrashData | null>(null);
   
   const targetDate = "2024-07-13"; // Format in the CSV file
 
@@ -187,8 +196,37 @@ const SafetyMetrics = () => {
       }
     };
 
+    const fetchTrafficData = async () => {
+      try {
+        const response = await fetch('/data/traffic_crash_daily_totals_july_2024.csv');
+        const csvText = await response.text();
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        const headers = rows[0].split(',');
+        
+        // Find the entry for July 13, 2024
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i].split(',');
+          if (cells[0] === targetDate) {
+            setTrafficData({
+              DATE: cells[0],
+              TOTAL_CRASHES: parseInt(cells[1], 10),
+              TOTAL_FATALITIES: parseFloat(cells[2]),
+              TOTAL_INCAPACITATING_INJURIES: parseFloat(cells[3]),
+              TOTAL_NON_INCAPACITATING_INJURIES: parseFloat(cells[4])
+            });
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching traffic crash data:', error);
+      }
+    };
+
     fetchSafetyIndexData();
     fetchCrimeData();
+    fetchTrafficData();
   }, []);
 
   return (
@@ -251,24 +289,25 @@ const SafetyMetrics = () => {
       <Card className="shadow-md overflow-hidden border-t-4 border-t-transit-green">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-sm font-medium">Response Time</CardTitle>
-            <CardDescription>Average dispatch</CardDescription>
+            <CardTitle className="text-sm font-medium">Total Traffic Incidents</CardTitle>
+            <CardDescription>July 13, 2024</CardDescription>
           </div>
-          <Clock className="h-5 w-5 text-transit-green" />
+          <Car className="h-5 w-5 text-transit-green" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">5.2 min</div>
-          <div className="flex items-center mt-1">
-            <span className="text-xs text-transit-green">0.5 min faster than last month</span>
-          </div>
+          <div className="text-2xl font-bold">{trafficData ? trafficData.TOTAL_CRASHES : "Loading..."}</div>
           <div className="mt-3">
             <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
-              <span>CTA Train</span>
-              <span className="font-medium">4.1 min</span>
+              <span>Fatalities</span>
+              <span className="font-medium">{trafficData ? trafficData.TOTAL_FATALITIES : "-"}</span>
             </div>
             <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
-              <span>CTA Bus</span>
-              <span className="font-medium">6.3 min</span>
+              <span>Incapacitating Injuries</span>
+              <span className="font-medium">{trafficData ? trafficData.TOTAL_INCAPACITATING_INJURIES : "-"}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs p-1 rounded hover:bg-gray-50">
+              <span>Non-incap. Injuries</span>
+              <span className="font-medium">{trafficData ? trafficData.TOTAL_NON_INCAPACITATING_INJURIES : "-"}</span>
             </div>
           </div>
         </CardContent>
