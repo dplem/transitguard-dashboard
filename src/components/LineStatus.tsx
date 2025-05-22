@@ -86,13 +86,13 @@ const LineStatus = () => {
       case 'low':
         return 'bg-green-500 text-white';
       default:
-        return 'bg-gray-200 text-gray-700';
+        return 'bg-green-500 text-white'; // Default to green instead of gray
     }
   };
 
   // Map risk_flag values to status text - keep the actual risk level from CSV
   const mapRiskToStatus = (risk: string) => {
-    return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Unknown';
+    return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Low';
   };
 
   const getRiskColor = (risk: string) => {
@@ -104,7 +104,7 @@ const LineStatus = () => {
       case 'low':
         return 'bg-green-500';
       default:
-        return 'bg-gray-200';
+        return 'bg-green-500'; // Default to green instead of gray
     }
   };
 
