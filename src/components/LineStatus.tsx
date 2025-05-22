@@ -2,12 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface LineData {
   name: string;
   incidents: number;
-  risk: string;
   color: string;
 }
 
@@ -24,7 +22,6 @@ const LineStatus = () => {
         
         // Parse CSV
         const rows = csvText.split('\n');
-        const headers = rows[0].split(',');
         
         const lineColors = {
           'Red Line': '#DC0A28', // CTA Red
@@ -39,7 +36,6 @@ const LineStatus = () => {
         };
 
         const parsedData: LineData[] = [];
-        const uniqueRiskCategories = new Set<string>();
         
         // Skip header row
         for (let i = 1; i < rows.length; i++) {
@@ -48,7 +44,6 @@ const LineStatus = () => {
           const cells = rows[i].split(',');
           const lineName = cells[0];
           const incidents = parseInt(cells[1]);
-          const risk = cells[2];
           
           // Skip if essential data is missing
           if (!lineName || isNaN(incidents)) continue;
@@ -56,18 +51,12 @@ const LineStatus = () => {
           parsedData.push({
             name: lineName,
             incidents,
-            risk,
             color: lineColors[lineName] || '#888888' // Default gray if color not found
           });
-
-          // Add risk category to set of unique categories
-          if (risk) {
-            uniqueRiskCategories.add(risk);
-          }
         }
         
         setTrainLines(parsedData);
-        setRiskCategories(Array.from(uniqueRiskCategories));
+        setRiskCategories(['High', 'Medium', 'Low']);
       } catch (error) {
         console.error('Error fetching line counts data:', error);
       } finally {
@@ -78,40 +67,36 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
-  // Get the correct badge variant based on risk level
-  const getRiskBadgeVariant = (risk: string): "default" | "destructive" | "outline" | "secondary" => {
-    switch (risk?.toLowerCase()) {
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'secondary';
-      case 'low':
-      default:
-        return 'default';
-    }
+  // Determine risk level based on incident count
+  const getRiskLevel = (incidents: number): string => {
+    if (incidents > 100) return 'high';
+    if (incidents >= 50) return 'medium';
+    return 'low';
   };
 
   // Get custom styling for badges based on risk
-  const getRiskBadgeStyle = (risk: string): string => {
-    switch (risk?.toLowerCase()) {
+  const getRiskBadgeStyle = (incidents: number): string => {
+    const risk = getRiskLevel(incidents);
+    switch (risk) {
       case 'high':
-        return 'bg-red-600 hover:bg-red-600 text-white border-transparent';
+        return 'bg-red-600 text-white border-transparent';
       case 'medium':
-        return 'bg-orange-500 hover:bg-orange-500 text-white border-transparent';
+        return 'bg-orange-500 text-white border-transparent';
       case 'low':
       default:
-        return 'bg-green-500 hover:bg-green-500 text-white border-transparent';
+        return 'bg-green-500 text-white border-transparent';
     }
   };
 
-  // Map risk_flag values to status text
-  const mapRiskToStatus = (risk: string) => {
-    return risk ? risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase() : 'Low';
+  // Map incident count to status text
+  const mapIncidentsToStatus = (incidents: number) => {
+    const risk = getRiskLevel(incidents);
+    return risk.charAt(0).toUpperCase() + risk.slice(1);
   };
 
   // Function to get color for legend dots
   const getRiskLegendColor = (risk: string) => {
-    switch (risk?.toLowerCase()) {
+    switch (risk.toLowerCase()) {
       case 'high':
         return 'bg-red-600';
       case 'medium':
@@ -151,8 +136,8 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeStyle(line.risk)}`}>
-                    {mapRiskToStatus(line.risk)}
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeStyle(line.incidents)}`}>
+                    {mapIncidentsToStatus(line.incidents)}
                   </span>
                 </div>
               </div>
@@ -160,29 +145,18 @@ const LineStatus = () => {
           </div>
         )}
         <div className="mt-4 pt-3 border-t flex justify-between text-xs text-gray-500">
-          {riskCategories.length > 0 ? (
-            riskCategories.map((risk) => (
-              <div key={risk} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full ${getRiskLegendColor(risk)} mr-1`}></div>
-                <span>{mapRiskToStatus(risk)}</span>
-              </div>
-            ))
-          ) : (
-            <>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-                <span>Low</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-orange-500 mr-1"></div>
-                <span>Medium</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
-                <span>High</span>
-              </div>
-            </>
-          )}
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+            <span>Low (&lt;50 incidents)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-orange-500 mr-1"></div>
+            <span>Medium (50-100 incidents)</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
+            <span>High (&gt;100 incidents)</span>
+          </div>
         </div>
       </CardContent>
     </Card>
