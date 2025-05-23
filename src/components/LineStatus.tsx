@@ -8,105 +8,80 @@ interface LineData {
   name: string;
   incidents: number;
   color: string;
+  riskFlag: string;
 }
 
 const LineStatus = () => {
   const [trainLines, setTrainLines] = useState<LineData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [riskCategories, setRiskCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Add a small delay to ensure the file is available
-        setTimeout(async () => {
-          try {
-            const response = await fetch('/data/line_counts.csv');
-            
-            if (!response.ok) {
-              throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
-            }
-            
-            const csvText = await response.text();
-            console.log('Fetched CSV data:', csvText); // Debug log
-            
-            // Parse CSV
-            const rows = csvText.split('\n');
-            
-            const lineColors = {
-              'Red Line': '#DC0A28', // CTA Red
-              'Blue Line': '#0078AE', // CTA Blue
-              'Brown Line': '#62361B', // CTA Brown
-              'Green Line': '#009B3A', // CTA Green
-              'Orange Line': '#F9461C', // CTA Orange
-              'Purple': '#522398', // CTA Purple
-              'Purple Line Express': '#522398', // CTA Purple
-              'Yellow Line': '#FFC72C', // CTA Yellow
-              'Pink Line': '#E27EA6', // CTA Pink
-            };
+        const response = await fetch('/data/line_counts_last_7_days.csv');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+        }
+        
+        const csvText = await response.text();
+        console.log('Fetched CSV data:', csvText);
+        
+        // Parse CSV
+        const rows = csvText.split('\n');
+        
+        const lineColors = {
+          'Red Line': '#DC0A28',
+          'Blue Line': '#0078AE', 
+          'Brown Line': '#62361B',
+          'Green Line': '#009B3A',
+          'Orange Line': '#F9461C',
+          'Purple Line': '#522398',
+          'Purple Line Express': '#522398',
+          'Yellow Line': '#FFC72C',
+          'Pink Line': '#E27EA6',
+        };
 
-            const parsedData: LineData[] = [];
-            
-            // Skip header row
-            for (let i = 1; i < rows.length; i++) {
-              if (!rows[i].trim()) continue; // Skip empty rows
-              
-              const cells = rows[i].split(',');
-              const lineName = cells[0];
-              const incidents = parseInt(cells[1]);
-              
-              // Skip if essential data is missing
-              if (!lineName || isNaN(incidents)) continue;
-              
-              parsedData.push({
-                name: lineName,
-                incidents,
-                color: lineColors[lineName] || '#888888' // Default gray if color not found
-              });
-            }
-            
-            // If we have no data, show mock data for development purposes
-            if (parsedData.length === 0) {
-              console.log('No data found, showing mock data');
-              const mockData: LineData[] = [
-                { name: 'Red Line', incidents: 102, color: '#DC0A28' },
-                { name: 'Blue Line', incidents: 59, color: '#0078AE' },
-                { name: 'Green Line', incidents: 28, color: '#009B3A' },
-                { name: 'Brown Line', incidents: 10, color: '#62361B' },
-                { name: 'Purple Line', incidents: 6, color: '#522398' },
-                { name: 'Orange Line', incidents: 27, color: '#F9461C' },
-                { name: 'Pink Line', incidents: 15, color: '#E27EA6' },
-              ];
-              setTrainLines(mockData);
-            } else {
-              setTrainLines(parsedData);
-            }
-            
-            setRiskCategories(['High', 'Medium', 'Low']);
-            setHasError(false);
-          } catch (error) {
-            console.error('Error fetching line counts data:', error);
-            setHasError(true);
-            
-            // Show mock data for development when an error occurs
-            const mockData: LineData[] = [
-              { name: 'Red Line', incidents: 102, color: '#DC0A28' },
-              { name: 'Blue Line', incidents: 59, color: '#0078AE' },
-              { name: 'Green Line', incidents: 28, color: '#009B3A' },
-              { name: 'Brown Line', incidents: 10, color: '#62361B' },
-              { name: 'Purple Line', incidents: 6, color: '#522398' },
-              { name: 'Orange Line', incidents: 27, color: '#F9461C' },
-              { name: 'Pink Line', incidents: 15, color: '#E27EA6' },
-            ];
-            setTrainLines(mockData);
-          } finally {
-            setIsLoading(false);
-          }
-        }, 1000); // 1 second delay to wait for data files
+        const parsedData: LineData[] = [];
+        
+        // Skip header row
+        for (let i = 1; i < rows.length; i++) {
+          if (!rows[i].trim()) continue;
+          
+          const cells = rows[i].split(',');
+          const lineName = cells[0];
+          const incidents = parseInt(cells[1]);
+          const riskFlag = cells[2];
+          
+          if (!lineName || isNaN(incidents)) continue;
+          
+          parsedData.push({
+            name: lineName,
+            incidents,
+            color: lineColors[lineName] || '#888888',
+            riskFlag: riskFlag || 'Low'
+          });
+        }
+        
+        setTrainLines(parsedData);
+        setHasError(false);
       } catch (error) {
-        console.error('Error in timeout:', error);
+        console.error('Error fetching line counts data:', error);
         setHasError(true);
+        
+        // Show mock data for development when an error occurs
+        const mockData: LineData[] = [
+          { name: 'Red Line', incidents: 31, color: '#DC0A28', riskFlag: 'Medium' },
+          { name: 'Blue Line', incidents: 11, color: '#0078AE', riskFlag: 'Medium' },
+          { name: 'Green Line', incidents: 9, color: '#009B3A', riskFlag: 'Low' },
+          { name: 'Brown Line', incidents: 7, color: '#62361B', riskFlag: 'Low' },
+          { name: 'Purple Line', incidents: 1, color: '#522398', riskFlag: 'Low' },
+          { name: 'Orange Line', incidents: 9, color: '#F9461C', riskFlag: 'Low' },
+          { name: 'Pink Line', incidents: 4, color: '#E27EA6', riskFlag: 'Low' },
+        ];
+        setTrainLines(mockData);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -114,17 +89,9 @@ const LineStatus = () => {
     fetchData();
   }, []);
 
-  // Determine risk level based on incident count
-  const getRiskLevel = (incidents: number): string => {
-    if (incidents > 100) return 'high';
-    if (incidents >= 50) return 'medium';
-    return 'low';
-  };
-
-  // Get custom styling for badges based on risk
-  const getRiskBadgeStyle = (incidents: number): string => {
-    const risk = getRiskLevel(incidents);
-    switch (risk) {
+  // Get custom styling for badges based on risk flag
+  const getRiskBadgeStyle = (riskFlag: string): string => {
+    switch (riskFlag.toLowerCase()) {
       case 'high':
         return 'bg-red-600 text-white border-transparent';
       case 'medium':
@@ -135,17 +102,11 @@ const LineStatus = () => {
     }
   };
 
-  // Map incident count to status text
-  const mapIncidentsToStatus = (incidents: number) => {
-    const risk = getRiskLevel(incidents);
-    return risk.charAt(0).toUpperCase() + risk.slice(1);
-  };
-
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-2 bg-white rounded-t-lg border-b">
         <CardTitle className="text-xl text-transit-blue">Line Status</CardTitle>
-        <CardDescription>Current safety status by transit line</CardDescription>
+        <CardDescription>Current safety status by transit line (Last 7 Days)</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {isLoading ? (
@@ -187,8 +148,8 @@ const LineStatus = () => {
                       <span>{line.incidents} incident{line.incidents !== 1 ? 's' : ''}</span>
                     </div>
                   )}
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeStyle(line.incidents)}`}>
-                    {mapIncidentsToStatus(line.incidents)}
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskBadgeStyle(line.riskFlag)}`}>
+                    {line.riskFlag}
                   </span>
                 </div>
               </div>
@@ -198,15 +159,15 @@ const LineStatus = () => {
         <div className="mt-4 pt-3 border-t flex justify-between text-xs text-gray-500">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-            <span>Low (&lt;50 incidents)</span>
+            <span>Low Risk</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-orange-500 mr-1"></div>
-            <span>Medium (50-100 incidents)</span>
+            <span>Medium Risk</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
-            <span>High (&gt;100 incidents)</span>
+            <span>High Risk</span>
           </div>
         </div>
       </CardContent>
