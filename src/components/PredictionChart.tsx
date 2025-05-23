@@ -29,7 +29,7 @@ const PredictionChart = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/public/data/sarima_results.csv');
+        const response = await fetch('/data/sarima_results.csv');
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
