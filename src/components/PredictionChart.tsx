@@ -29,11 +29,13 @@ const PredictionChart = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/public/data/sarima_results.csv');
+        console.log('Fetching prediction data from /data/sarima_results.csv...');
+        const response = await fetch('/data/sarima_results.csv');
         if (!response.ok) {
-          throw new Error('Failed to fetch data');
+          throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
         }
         const csvText = await response.text();
+        console.log('CSV data received:', csvText.substring(0, 200) + '...');
         
         // Parse CSV data
         const lines = csvText.trim().split('\n');
@@ -48,6 +50,7 @@ const PredictionChart = () => {
           };
         });
         
+        console.log('Parsed prediction data:', parsedData);
         setData(parsedData);
         setError(null);
       } catch (err) {
