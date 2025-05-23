@@ -14,13 +14,13 @@ const SafetyMap = () => {
   const getMapFile = () => {
     switch(timeRange) {
       case '24h':
-        return '/data/July_13_crimes_and_crashes_map.html';
+        return '/public/data/July_13_crimes_and_crashes_map.html';
       case '7d':
-        return '/data/Last_7_days_2024_crimes_and_crashes_map.html';
+        return '/public/data/Last_7_days_2024_crimes_and_crashes_map.html';
       case '30d':
-        return '/data/Last_30_days_2024_crimes_and_crashes_map.html';
+        return '/public/data/Last_30_days_2024_crimes_and_crashes_map.html';
       default:
-        return '/data/July_13_crimes_and_crashes_map.html';
+        return '/public/data/July_13_crimes_and_crashes_map.html';
     }
   };
   
