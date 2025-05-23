@@ -10,8 +10,26 @@ const SafetyMap = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState(false);
   
+  // Get the correct map file based on selected time range
+  const getMapFile = () => {
+    switch(timeRange) {
+      case '24h':
+        return '/data/July_13_crimes_and_crashes_map.html';
+      case '7d':
+        return '/data/Last_7_days_2024_crimes_and_crashes_map.html';
+      case '30d':
+        return '/data/Last_30_days_2024_crimes_and_crashes_map.html';
+      default:
+        return '/data/July_13_crimes_and_crashes_map.html';
+    }
+  };
+  
   // Load the HTML file in an iframe
   useEffect(() => {
+    // Reset loading state when time range changes
+    setIsLoading(true);
+    setMapError(false);
+    
     // Add a timeout to simulate loading and catch potential errors
     const loadingTimeout = setTimeout(() => {
       if (isLoading) {
@@ -30,7 +48,7 @@ const SafetyMap = () => {
       setMapError(true);
       setIsLoading(false);
       clearTimeout(loadingTimeout);
-      console.error("Error loading map HTML file");
+      console.error(`Error loading map HTML file: ${getMapFile()}`);
     };
 
     const iframe = document.getElementById('crime-map-iframe') as HTMLIFrameElement;
@@ -76,6 +94,7 @@ const SafetyMap = () => {
         </div>
         <Select 
           defaultValue="24h"
+          value={timeRange}
           onValueChange={setTimeRange}
         >
           <SelectTrigger className="w-[120px]">
@@ -100,7 +119,7 @@ const SafetyMap = () => {
           ) : (
             <iframe
               id="crime-map-iframe"
-              src="/data/july_crime_map.html"
+              src={getMapFile()}
               className="absolute inset-0 w-full h-full border-0"
               title="Chicago Crime Map"
               sandbox="allow-same-origin allow-scripts"
