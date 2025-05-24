@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -97,7 +96,7 @@ const PredictionChart = () => {
 
   if (isLoading) {
     return (
-      <Card className="col-span-2">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-xl">Predictive Analysis</CardTitle>
           <CardDescription>Loading crime data...</CardDescription>
@@ -111,7 +110,7 @@ const PredictionChart = () => {
 
   if (error) {
     return (
-      <Card className="col-span-2">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-xl">Predictive Analysis</CardTitle>
           <CardDescription className="text-red-500">{error}</CardDescription>
@@ -126,7 +125,7 @@ const PredictionChart = () => {
   }
 
   return (
-    <Card className="col-span-2">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-xl">Predictive Analysis</CardTitle>

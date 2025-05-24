@@ -26,10 +26,8 @@ const Dashboard = () => {
             <LineStatus />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <PredictionChart />
-            {/* TimeAnalysis component has been removed from here */}
-          </div>
+          {/* Predictive Analysis now spans full width */}
+          <PredictionChart />
         </div>
       </main>
       
