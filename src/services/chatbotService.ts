@@ -1,4 +1,3 @@
-
 export interface ChatResponse {
   success: boolean;
   message: string;
@@ -83,8 +82,13 @@ const findBestMatch = (userQuery: string): string | null => {
   return null;
 };
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const getChatbotResponse = async (userMessage: string): Promise<ChatResponse> => {
   try {
+    // Add 1 second delay
+    await delay(1000);
+    
     // First, try to get response from local API if available
     // This is where you would add your API call when ready
     // Example: const response = await fetch('http://localhost:3000/api/chat', { ... });
@@ -107,6 +111,9 @@ export const getChatbotResponse = async (userMessage: string): Promise<ChatRespo
     
   } catch (error) {
     console.error('Error getting chatbot response:', error);
+    
+    // Add delay for error responses too
+    await delay(1000);
     
     // Return hardcoded response as fallback
     const hardcodedResponse = findBestMatch(userMessage);
