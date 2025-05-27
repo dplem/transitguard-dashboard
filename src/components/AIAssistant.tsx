@@ -126,6 +126,7 @@ const AIAssistant = () => {
               {/* Suggestion buttons */}
               {messages.length <= 2 && !isLoading && (
                 <div className="flex flex-col gap-2 mt-4">
+                  <p className="text-sm text-gray-600 mb-2">Try these example questions:</p>
                   {suggestionButtons.map((text, i) => (
                     <Button 
                       key={i}
