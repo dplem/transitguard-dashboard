@@ -50,8 +50,30 @@ const ChatbotPopup = () => {
   const suggestionButtons = [
     "What are the stations near me?",
     "What are the total number of crimes today?",
+    "What are the total number of traffic accidents today?",
     "What is the safest line in the last 7 days?"
   ];
+
+  const handleSuggestionClick = async (text: string) => {
+    setMessages(prev => [...prev, { role: 'user', content: text }]);
+    setIsLoading(true);
+    
+    try {
+      const response = await getChatbotResponse(text);
+      setMessages(prev => [...prev, { 
+        role: 'bot', 
+        content: response.message
+      }]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { 
+        role: 'bot', 
+        content: "I'm currently experiencing connectivity issues. Please try again later or contact CTA customer service for immediate assistance."
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -124,17 +146,7 @@ const ChatbotPopup = () => {
                   {suggestionButtons.map((text, i) => (
                     <Button 
                       key={i}
-                      onClick={() => {
-                        setMessages(prev => [...prev, { role: 'user', content: text }]);
-                        setIsLoading(true);
-                        getChatbotResponse(text).then(response => {
-                          setMessages(prev => [...prev, { 
-                            role: 'bot', 
-                            content: response.message
-                          }]);
-                          setIsLoading(false);
-                        });
-                      }}
+                      onClick={() => handleSuggestionClick(text)}
                       className="bg-pink-500 hover:bg-pink-600 text-white rounded-full justify-center py-2 w-auto self-end"
                     >
                       {text}

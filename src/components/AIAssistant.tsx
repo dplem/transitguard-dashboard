@@ -49,6 +49,35 @@ const AIAssistant = () => {
     }
   };
 
+  const suggestionButtons = [
+    "What are the stations near me?",
+    "What are the total number of crimes today?",
+    "What are the total number of traffic accidents today?",
+    "What is the safest line in the last 7 days?"
+  ];
+
+  const handleSuggestionClick = async (text: string) => {
+    const userMessage = { role: 'user' as const, content: text };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    
+    try {
+      const response = await getChatbotResponse(text);
+      setMessages((prev) => [...prev, { 
+        role: 'assistant', 
+        content: response.message 
+      }]);
+    } catch (error) {
+      console.error('Error getting response:', error);
+      setMessages((prev) => [...prev, { 
+        role: 'assistant', 
+        content: "I'm currently experiencing connectivity issues. Please try again later or contact CTA customer service for immediate assistance." 
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <Button 
@@ -91,6 +120,22 @@ const AIAssistant = () => {
                       <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-200"></div>
                     </div>
                   </div>
+                </div>
+              )}
+              
+              {/* Suggestion buttons */}
+              {messages.length <= 2 && !isLoading && (
+                <div className="flex flex-col gap-2 mt-4">
+                  {suggestionButtons.map((text, i) => (
+                    <Button 
+                      key={i}
+                      onClick={() => handleSuggestionClick(text)}
+                      variant="outline"
+                      className="text-left justify-start text-sm"
+                    >
+                      {text}
+                    </Button>
+                  ))}
                 </div>
               )}
             </div>
