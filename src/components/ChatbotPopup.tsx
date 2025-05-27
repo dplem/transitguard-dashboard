@@ -79,26 +79,26 @@ const ChatbotPopup = () => {
     <>
       {/* Floating button */}
       <Button 
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 p-0 shadow-lg bg-pink-500 hover:bg-pink-600 z-50"
+        className="fixed bottom-6 right-6 rounded-full w-14 h-14 p-0 shadow-lg bg-transit-red hover:bg-red-700 z-50"
         size="icon"
         onClick={() => setIsOpen(true)}
       >
         <MessageCircle className="h-6 w-6 text-white" />
-        {!isOpen && <span className="absolute top-0 right-0 block w-4 h-4 bg-red-500 text-white text-xs rounded-full">1</span>}
+        {!isOpen && <span className="absolute top-0 right-0 block w-4 h-4 bg-transit-blue text-white text-xs rounded-full">1</span>}
       </Button>
 
       {/* Chat popup */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-[350px] bg-white rounded-lg shadow-xl border z-40 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="p-4 flex items-center justify-between border-b">
+          <div className="p-4 flex items-center justify-between border-b bg-transit-blue">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-transit-red rounded-full flex items-center justify-center">
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
-              <h3 className="font-medium">TransitGuard Assistant</h3>
+              <h3 className="font-medium text-white">TransitGuard Assistant</h3>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 text-white hover:bg-blue-700">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -115,8 +115,8 @@ const ChatbotPopup = () => {
                     <div 
                       className={`rounded-lg px-4 py-2 max-w-[80%] ${
                         message.role === 'user' 
-                          ? 'bg-pink-500 text-white' 
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-transit-red text-white' 
+                          : 'bg-white border border-gray-200 text-gray-800'
                       }`}
                     >
                       {message.content}
@@ -129,11 +129,11 @@ const ChatbotPopup = () => {
                 
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="rounded-lg px-4 py-2 bg-gray-100">
+                    <div className="rounded-lg px-4 py-2 bg-white border border-gray-200">
                       <div className="flex space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-100"></div>
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-200"></div>
+                        <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce"></div>
+                        <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce delay-100"></div>
+                        <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce delay-200"></div>
                       </div>
                     </div>
                   </div>
@@ -148,7 +148,7 @@ const ChatbotPopup = () => {
                     <Button 
                       key={i}
                       onClick={() => handleSuggestionClick(text)}
-                      className="bg-pink-500 hover:bg-pink-600 text-white rounded-full justify-center py-2 w-auto self-end"
+                      className="bg-transit-blue hover:bg-blue-700 text-white rounded-full justify-center py-2 w-auto self-end"
                     >
                       {text}
                     </Button>
@@ -170,7 +170,7 @@ const ChatbotPopup = () => {
               <Button 
                 onClick={handleSendMessage} 
                 size="icon" 
-                className="h-8 w-8 bg-pink-500 hover:bg-pink-600 rounded-full"
+                className="h-8 w-8 bg-transit-red hover:bg-red-700 rounded-full"
                 disabled={isLoading}
               >
                 <Send className="h-4 w-4 text-white" />

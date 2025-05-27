@@ -82,7 +82,7 @@ const AIAssistant = () => {
     <>
       <Button 
         onClick={() => setIsOpen(true)} 
-        className="fixed bottom-6 right-6 rounded-full p-4 shadow-lg bg-transit-blue text-white h-14 w-14 flex items-center justify-center"
+        className="fixed bottom-6 right-6 rounded-full p-4 shadow-lg bg-transit-red hover:bg-red-700 text-white h-14 w-14 flex items-center justify-center"
       >
         <Bot className="h-6 w-6" />
       </Button>
@@ -90,7 +90,7 @@ const AIAssistant = () => {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-transit-blue">
               <Bot className="h-5 w-5" />
               Chicago Transit Safety Assistant
             </DialogTitle>
@@ -103,8 +103,8 @@ const AIAssistant = () => {
                   <div 
                     className={`rounded-lg px-4 py-2 max-w-[80%] ${
                       message.role === 'user' 
-                        ? 'bg-transit-blue text-white' 
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-transit-red text-white' 
+                        : 'bg-white border border-gray-200 text-gray-800'
                     }`}
                   >
                     {message.content}
@@ -113,11 +113,11 @@ const AIAssistant = () => {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="rounded-lg px-4 py-2 bg-gray-100">
+                  <div className="rounded-lg px-4 py-2 bg-white border border-gray-200">
                     <div className="flex space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-100"></div>
-                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-200"></div>
+                      <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce"></div>
+                      <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce delay-100"></div>
+                      <div className="w-2 h-2 rounded-full bg-transit-blue animate-bounce delay-200"></div>
                     </div>
                   </div>
                 </div>
@@ -132,7 +132,7 @@ const AIAssistant = () => {
                       key={i}
                       onClick={() => handleSuggestionClick(text)}
                       variant="outline"
-                      className="text-left justify-start text-sm"
+                      className="text-left justify-start text-sm border-transit-blue text-transit-blue hover:bg-transit-blue hover:text-white"
                     >
                       {text}
                     </Button>
@@ -150,7 +150,7 @@ const AIAssistant = () => {
                 className="flex-1"
                 disabled={isLoading}
               />
-              <Button onClick={handleSend} size="icon" disabled={isLoading}>
+              <Button onClick={handleSend} size="icon" disabled={isLoading} className="bg-transit-blue hover:bg-blue-700">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
