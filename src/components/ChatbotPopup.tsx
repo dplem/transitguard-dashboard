@@ -4,7 +4,7 @@ import { MessageCircle, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { getChatbotResponse } from '@/services/chatbotService';
 
 type Message = {
   role: 'user' | 'bot';
@@ -14,32 +14,43 @@ type Message = {
 const ChatbotPopup = () => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'bot', content: 'Hi there 👋' },
-    { role: 'bot', content: 'How can I help you today?' },
+    { role: 'bot', content: 'How can I help you with Chicago Transit safety today?' },
   ]);
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
     
     // Add user message
     const userMessage = { role: 'user' as const, content: input };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
+    setIsLoading(true);
     
-    // This is just a placeholder response
-    setTimeout(() => {
+    try {
+      const response = await getChatbotResponse(currentInput);
       setMessages(prev => [...prev, { 
         role: 'bot', 
-        content: "This is a placeholder response. Connect your real AI chatbot here in the future."
+        content: response.message
       }]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { 
+        role: 'bot', 
+        content: "I'm currently experiencing connectivity issues. Please try again later or contact CTA customer service for immediate assistance."
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const suggestionButtons = [
-    "What can this assistant do?",
-    "Tell me about your offerings",
-    "I have an issue"
+    "What are the stations near me?",
+    "What are the total number of crimes today?",
+    "What is the safest line in the last 7 days?"
   ];
 
   return (
@@ -54,7 +65,7 @@ const ChatbotPopup = () => {
         {!isOpen && <span className="absolute top-0 right-0 block w-4 h-4 bg-red-500 text-white text-xs rounded-full">1</span>}
       </Button>
 
-      {/* Chat popup - using a custom Dialog component for more control */}
+      {/* Chat popup */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-[350px] bg-white rounded-lg shadow-xl border z-40 flex flex-col overflow-hidden">
           {/* Header */}
@@ -63,7 +74,7 @@ const ChatbotPopup = () => {
               <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
-              <h3 className="font-medium">Virtual Assistant</h3>
+              <h3 className="font-medium">TransitGuard Assistant</h3>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
               <X className="h-4 w-4" />
@@ -93,22 +104,36 @@ const ChatbotPopup = () => {
                     </div>
                   </div>
                 ))}
+                
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="rounded-lg px-4 py-2 bg-gray-100">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-100"></div>
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce delay-200"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Suggestion buttons */}
-              {messages.length <= 3 && (
+              {messages.length <= 3 && !isLoading && (
                 <div className="flex flex-col gap-2 mt-4">
                   {suggestionButtons.map((text, i) => (
                     <Button 
                       key={i}
                       onClick={() => {
                         setMessages(prev => [...prev, { role: 'user', content: text }]);
-                        setTimeout(() => {
+                        setIsLoading(true);
+                        getChatbotResponse(text).then(response => {
                           setMessages(prev => [...prev, { 
                             role: 'bot', 
-                            content: `Response to "${text}" will appear here when connected to a real AI.`
+                            content: response.message
                           }]);
-                        }, 1000);
+                          setIsLoading(false);
+                        });
                       }}
                       className="bg-pink-500 hover:bg-pink-600 text-white rounded-full justify-center py-2 w-auto self-end"
                     >
@@ -122,13 +147,19 @@ const ChatbotPopup = () => {
             {/* Input area */}
             <div className="border-t p-3 flex items-center">
               <Input
-                placeholder="Write your message..."
+                placeholder="Ask about Chicago Transit safety..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
                 className="flex-1 border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isLoading}
               />
-              <Button onClick={handleSendMessage} size="icon" className="h-8 w-8 bg-pink-500 hover:bg-pink-600 rounded-full">
+              <Button 
+                onClick={handleSendMessage} 
+                size="icon" 
+                className="h-8 w-8 bg-pink-500 hover:bg-pink-600 rounded-full"
+                disabled={isLoading}
+              >
                 <Send className="h-4 w-4 text-white" />
               </Button>
             </div>

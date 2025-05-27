@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { Bot, Send, X } from 'lucide-react';
+import { Bot, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { getChatbotResponse } from '@/services/chatbotService';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -16,38 +17,36 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hello! I'm your Chicago Transit Assistant. How can I help you today? You can ask me about transit schedules, safety information, or station details.",
+      content: "Hello! I'm your Chicago Transit Safety Assistant. How can I help you today? You can ask me about transit safety, crime statistics, station information, or safety alerts.",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     
     // Add user message
     const userMessage = { role: 'user' as const, content: input };
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
     
-    // Simulate AI response (in a real app, you'd call an API here)
-    setTimeout(() => {
-      let response;
-      const userQuery = input.toLowerCase();
-      
-      if (userQuery.includes('safe') || userQuery.includes('danger') || userQuery.includes('incident')) {
-        response = "Based on our data, most safety incidents occur during evening hours. The downtown Loop area has the lowest incident rate. Always stay aware of your surroundings and report any suspicious activity.";
-      } else if (userQuery.includes('schedule') || userQuery.includes('time') || userQuery.includes('when')) {
-        response = "Most CTA trains run every 10-15 minutes during peak hours (6am-9am and 3pm-6pm) and every 15-20 minutes during off-peak hours. Bus schedules vary by route.";
-      } else if (userQuery.includes('fare') || userQuery.includes('cost') || userQuery.includes('price')) {
-        response = "Standard CTA fare is $2.50 for trains and $2.25 for buses. Transfers are $0.25. Consider getting a Ventra card for easier payment.";
-      } else {
-        response = "Thank you for your question. For the most accurate and up-to-date information, I recommend checking the official CTA website or contacting their customer service.";
-      }
-      
-      setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
+    try {
+      const response = await getChatbotResponse(currentInput);
+      setMessages((prev) => [...prev, { 
+        role: 'assistant', 
+        content: response.message 
+      }]);
+    } catch (error) {
+      console.error('Error getting response:', error);
+      setMessages((prev) => [...prev, { 
+        role: 'assistant', 
+        content: "I'm currently experiencing connectivity issues. Please try again later or contact CTA customer service for immediate assistance." 
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -64,7 +63,7 @@ const AIAssistant = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              Chicago Transit Assistant
+              Chicago Transit Safety Assistant
             </DialogTitle>
           </DialogHeader>
           
@@ -98,13 +97,14 @@ const AIAssistant = () => {
             
             <div className="flex items-center space-x-2">
               <Input
-                placeholder="Ask about transit info..."
+                placeholder="Ask about transit safety..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
                 className="flex-1"
+                disabled={isLoading}
               />
-              <Button onClick={handleSend} size="icon">
+              <Button onClick={handleSend} size="icon" disabled={isLoading}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
